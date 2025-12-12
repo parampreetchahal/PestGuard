@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PestGuard - Detect Pests</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style/detect.css') }}">
+</head>
+
+
+<body>
+  <header>
+    <nav>
+      <ul>
+        <li><a href="/">🏠 Home</a></li>
+        <li><a href="/detect">🔍 Detect</a></li>
+        <li><a href="#">🛠️ Solutions</a></li>
+        <li><a href="#">📩 Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+
+
+  <main>
+    <h1>🌾 PestGuard - Upload Images for Detection</h1>
+    <p>
+      Upload one or more crop images, and let <b>PestGuard</b> analyze them.
+      <br>
+      Our AI-powered system detects harmful pests and provides <b>practical solutions</b> 
+      to minimize crop loss and ensure sustainable farming.
+    </p>
+
+    <form action="{{ url_for('detect') }}" method="POST" enctype="multipart/form-data">
+      <div class="upload-box">
+        <label for="images">📸<b> Choose Pest Images:</b> </label>
+        <input type="file" id="images" name="images" accept="image/*" multiple required>
+        <br>
+        <br>
+        <input type="text" id="shoplocation" name="shoplocation" placeholder="Enter nearby city" required>
+
+      </div>
+      <button type="submit">🚜 Detect</button>
+      <div id="loader" class="loader"></div>
+    </form>
+
+    <section class="info">
+      <h2>🧑‍🌾 Why Pest Detection?</h2>
+      <ul>
+        <li>✔️ Early detection helps save crops from major losses.</li>
+        <li>✔️ Identifies specific pests for targeted solutions.</li>
+        <li>✔️ Reduces overuse of pesticides by suggesting alternatives.</li>
+        <li>✔️ Promotes sustainable and eco-friendly farming.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    © 2025 PestGuard | AI for Sustainable Farming
+  </footer>
+
+  <script>
+    const form = document.querySelector("form");
+    const loader = document.getElementById("loader");
+
+    form.addEventListener("submit", () => {
+      loader.style.display = "block";  // show animation
+    });
+  </script>
+</body>
+</html>

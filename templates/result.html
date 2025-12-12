@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pest Detection Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/result.css') }}">
+</head>
+<body>
+<header>
+    <h1>🌱 Pest Detection Results</h1>
+</header>
+
+<main>
+    {% if results %}
+        {% for res in results %}
+            <div class="result-card">
+                <!-- Left column -->
+                <div class="left-side">
+                    <h2>📸 Uploaded Image</h2>
+                    <img src="{{ url_for('static', filename='uploads/' + res.filename) }}" alt="Uploaded Image">
+
+                    {% if res.pest == "No pest found" %}
+                        <h2>❌ No Pest Detected</h2>
+                        <p>Confidence: {{ res.confidence }}% (below threshold)</p>
+                    {% else %}
+                        <h2>🔍 Detection Summary</h2>
+                        <p><strong>Pest Detected:</strong> {{ res.pest }}</p>
+                        <p><strong>Confidence:</strong> {{ res.confidence }}%</p>
+
+                        <h2>🌿 Pest Information</h2>
+                        <p><strong>Effects:</strong> {{ res.effects }}</p>
+                        <p><strong>Recommended Control:</strong> {{ res.solution }}</p>
+
+                        <h2>🏬 Nearby Pesticide Stores</h2>
+                        <ul>
+                            {% for store in res.stores %}
+                                <li>
+                                    <strong>{{ store.name }}</strong><br>
+                                    {{ store.address }}<br>
+                                    <a href="{{ store.maps_url }}" target="_blank" class="map-btn">📍 Get Directions</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+
+                    {% endif %}
+                </div>
+
+                {% if res.pest != "No pest found" %}
+                <!-- Right column for Get More Info -->
+                <div class="right-side">
+                    <button class="btn-more" onclick="fetchMoreInfo('{{ res.pest }}', this)">
+                        Get More Info
+                    </button>
+                    <div class="more-info-box" style="display:none;"></div>
+                </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No results available. Please upload an image first.</p>
+    {% endif %}
+</main>
+
+<footer>
+    <a href="{{ url_for('detect') }}" class="btn">🔄 Detect Again</a>
+    <a href="{{ url_for('home') }}" class="btn">🏠 Home</a>
+</footer>
+
+<script>
+function fetchMoreInfo(pestName, button) {
+    fetch("/more_info", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ pest: pestName })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.info) {
+            button.style.display = "none";
+            const box = button.nextElementSibling;
+            box.style.display = "block";
+            let formatted = data.info
+                .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                .replace(/\n\d+\.\s/g, "<br>• ")
+                .replace(/\n\* /g, "<br>&nbsp;&nbsp;&nbsp;• ");
+            box.innerHTML = `<h3>📘 More Information</h3><div class="info-content">${formatted}</div>`;
+        } else {
+            alert(data.error || "Could not fetch info");
+        }
+    })
+    .catch(err => alert("Failed to fetch info: " + err));
+}
+</script>
+</body>
+</html>

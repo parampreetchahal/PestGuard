@@ -1,0 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+*{
+font-family: 'Montserrat', sans-serif;
+}
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #a8e063, #56ab2f);
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+/* Header */
+header {
+    background: linear-gradient(90deg, #2e7d32, #1b5e20);
+    color: white;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0px 6px 12px rgba(0,0,0,0.25);
+
+}
+header h1 {
+    margin: 0;
+    font-size: 2rem;
+    letter-spacing: 1px;
+}
+
+/* Layout */
+main {
+    padding: 30px 20px;
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+/* Result Card */
+.result-card {
+    background: rgba(255, 255, 255, 0.70);
+    backdrop-filter: blur(8px);
+    padding: 25px;
+    border-radius: 16px;
+    margin-bottom: 25px;
+    box-shadow: 0px 6px 15px rgba(0,0,0,0.2);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 30px;
+    align-items: flex-start;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.result-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 10px 20px rgba(0,0,0,0.3);
+}
+
+/* Left side */
+.left-side {
+    flex: 1 1 40%;
+    min-width: 300px;
+}
+.result-card img {
+    max-width: 320px;
+    border-radius: 12px;
+    margin: 15px 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* Headings */
+h2 {
+    color: #2e7d32;
+    margin-top: 15px;
+    border-left: 4px solid #2e7d32;
+    padding-left: 10px;
+}
+
+/* List */
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+ul li {
+    background: #f0f8f0;
+    padding: 10px;
+    margin: 6px 0;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+    transition: background 0.3s ease;
+}
+ul li:hover {
+    background: #dcedc8;
+}
+
+/* Right side */
+.right-side {
+    flex: 1 1 25%;
+    min-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;  /* ✅ spacing between button and info box */
+}
+
+/* Buttons */
+.btn, .btn-more {
+    display: inline-block;
+    padding: 12px 15px;
+    margin: 10px;
+    background: linear-gradient(90deg, #2e7d32, #43a047);
+    color: white;
+    text-decoration: none;
+    border: none;
+    border-radius: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+.btn:hover, .btn-more:hover {
+    background: linear-gradient(90deg, #1b5e20, #2e7d32);
+    transform: translateY(-2px);
+    box-shadow: 0px 6px 15px rgba(0,0,0,0.3);
+}
+
+
+/* Info Box */
+.more-info-box {
+    background: rgba(255, 255, 255, 0.40);
+    border: 3px solid #2e7d32;
+    border-radius: 14px;
+    padding: 20px;
+    color: #333;
+    max-height: 380px;
+    overflow-y: auto;
+    margin-right: 50px;
+    margin-top: 84px;
+    box-shadow: 0px 6px 15px rgba(0,0,0,0.25);
+    font-size: 16px;          /* ✅ reduced from 20px for better fit */
+    line-height: 1.7;
+    word-wrap: break-word;
+    animation: fadeIn 0.5s ease;
+    display: none;
+
+    width: auto;              /* ✅ fill the right-side only */
+    max-width: 100%;          /* ✅ prevent spilling outside parent */
+    box-sizing: border-box;   /* ✅ padding stays inside width */
+}
+
+
+/* Title inside info box */
+.more-info-box h3 {
+    color: #1b5e20;
+    margin-top: 0;
+    border-bottom: 2px solid #2e7d32;
+    padding-bottom: 6px;
+    font-size: 1.15rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+/* Add smooth scrollbar styling */
+.more-info-box::-webkit-scrollbar {
+    width: 8px;
+}
+.more-info-box::-webkit-scrollbar-thumb {
+    background: #2e7d32;
+    border-radius: 6px;
+}
+.more-info-box::-webkit-scrollbar-track {
+    background: #e8f5e9;
+}
+.more-info-box .info-content strong {
+    color: #2e7d32;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 30px;
+}
+
+.map-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-decoration: none;
+}
+.map-btn:hover {
+    background-color: #3e8e41;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
