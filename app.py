@@ -3,7 +3,7 @@ import os
 from werkzeug.utils import secure_filename
 from PIL import Image
 import numpy as np
-import pyodbc
+import config
 
 from concurrent.futures import ThreadPoolExecutor
 import json
@@ -12,7 +12,13 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError, GeocoderUnavailable
 import requests
 import time
+from supabase import create_client
+import config
 
+supabase = create_client(
+    config.SUPABASE_URL,
+    config.SUPABASE_KEY
+)
 # Deep learning model
 from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
@@ -37,47 +43,51 @@ pest_classes = {v: k for k, v in class_indices.items()}
 
 # -------------------------------
 # -------------------------------
-# Azure SQL Helper Function
-# -------------------------------
+
+#DATABASE CONNECTIVE
 def get_pest_info(pest_name):
+    """
+    Fetch pest info from Supabase (PostgreSQL)
+    Table: pestguard
+    Columns: pest_name, effects, natural_solution, chemical_solution
+    """
+    default = {
+        "effects": "Unknown",
+        "natural_solution": "Unknown",
+        "pesticide_solution": "Unknown"
+    }
+
+    if not pest_name:
+        return default
+
     try:
-        # Connect to Azure SQL Database
-        conn = pyodbc.connect(
-            'DRIVER={ODBC Driver 18 for SQL Server};'
-            'SERVER=tcp:pestguard-sql-server.database.windows.net,1433;'
-            'DATABASE=PestGuardDB;'
-            'UID=pestadmin@pestguard-sql-server;'
-            'PWD=Param@2326;'
-            'Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
+        response = (
+            supabase
+            .table("pestguard")
+            .select("pest_name,effects,natural_solution,chemical_solution")
+            .ilike("pest_name", pest_name)
+            .limit(1)
+            .execute()
         )
-        cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT natural_solution, fertilize_solution
-            FROM Pest_Info
-            WHERE pest_name = ?
-        """, (pest_name,))
-
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if result:
+        if response.data:
+            row = response.data[0]
             return {
-                "effects": result[0],  # You can rename these keys later
-                "solution": result[1]
+                "effects": row.get("effects", "Unknown"),
+                "natural_solution": row.get("natural_solution", "Unknown"),
+                # 🔁 map chemical_solution → pesticide_solution (your app expects this key)
+                "pesticide_solution": row.get("chemical_solution", "Unknown")
             }
-        else:
-            return {"effects": "Unknown", "solution": "Unknown"}
+
+        return default
 
     except Exception as e:
-        print("Azure SQL Error:", e)
-        return {"effects": "Error fetching from DB", "solution": "N/A"}
-
-
-# -------------------------------
-# OpenStreetMap Helper (Free Alternative)
-# -------------------------------
+        print("❌ Supabase error in get_pest_info:", e)
+        return {
+            "effects": "Error",
+            "natural_solution": "N/A",
+            "pesticide_solution": "N/A"
+        }
 
 
 # Cache coordinates per city (reduces repeated requests)
@@ -229,7 +239,8 @@ def predict_image(image_path, threshold=50):
             "pest": "No pest found",
             "confidence": confidence,
             "effects": "N/A",
-            "solution": "N/A",
+            "natural_solution": "N/A",
+            "pesticide_solution": "N/A",
             "stores": []
         }
 
@@ -240,8 +251,9 @@ def predict_image(image_path, threshold=50):
         "filename": os.path.basename(image_path),
         "pest": detected_pest,
         "confidence": confidence,
-        "effects": pest_info["effects"],
-        "solution": pest_info["solution"],
+        "effects": pest_info.get("effects", "Unknown"),
+        "natural_solution": pest_info.get("natural_solution", "Unknown"),
+        "pesticide_solution": pest_info.get("pesticide_solution", "Unknown"),
         "stores": []  # Stores will be added in /detect
     }
 

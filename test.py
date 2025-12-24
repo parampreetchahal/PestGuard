@@ -1,31 +1,45 @@
-import mysql.connector
+from supabase import create_client
 
-def test_mysql_connection():
+# =========================
+# SUPABASE CONFIG
+# =========================
+SUPABASE_URL = "https://oydklhdfhcjwaggxfeak.supabase.co"
+SUPABASE_KEY = "sb_secret_riiZofPfWYVoAEH0zhterg_ZfgPo-71"
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# =========================
+# TEST FUNCTION
+# =========================
+def pest_lookup(pest_name):
     try:
-        print("Connecting to MySQL...")
+        print(f"🔍 Searching for pest: {pest_name}")
 
-        conn = mysql.connector.connect(
-            host="sql12.freesqldatabase.com",        # e.g., sql11.freesqldatabase.com
-            user="sql12811476",    # e.g., sql1234567
-            password="WKkgyF1mBM",
-            database="sql12811476",
-            port=3306
+        response = (
+            supabase
+            .table("pestguard")
+            .select("pest_name,effects,natural_solution,chemical_solution")
+            .ilike("pest_name", pest_name)
+            .limit(1)
+            .execute()
         )
 
-        print("Connected successfully!")
-
-        cursor = conn.cursor()
-        cursor.execute("SELECT DATABASE();")
-        db_name = cursor.fetchone()
-
-        print("Active Database:", db_name[0])
-
-        cursor.close()
-        conn.close()
-        print("Connection closed.")
+        if response.data:
+            row = response.data[0]
+            print("✅ FOUND")
+            print("Pest Name :", row["pest_name"])
+            print("Effect    :", row["effects"])
+            print("Natural   :", row["natural_solution"])
+            print("Pesticide :", row["chemical_solution"])
+        else:
+            print("❌ No matching pest found")
 
     except Exception as e:
-        print("ERROR:", e)
+        print("🔥 ERROR:", e)
 
-# run test
-test_mysql_connection()
+
+# =========================
+# RUN TEST
+# =========================
+if __name__ == "__main__":
+    pest_lookup("moth")

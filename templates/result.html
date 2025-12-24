@@ -29,18 +29,33 @@
                         <p><strong>Confidence:</strong> {{ res.confidence }}%</p>
 
                         <h2>🌿 Pest Information</h2>
-                        <p><strong>Effects:</strong> {{ res.effects }}</p>
-                        <p><strong>Recommended Control:</strong> {{ res.solution }}</p>
+                        <p><strong>Effects:</strong> {{ res.effects or "Unknown" }}</p>
+
+                        <div class="solutions-grid">
+                            <div class="solution-box">
+                                <h3>🌱 Natural / Cultural Solution</h3>
+                                <p>{{ res.natural_solution or "Not available" }}</p>
+                            </div>
+
+                            <div class="solution-box">
+                                <h3>🧪 Pesticide / Chemical Solution</h3>
+                                <p>{{ res.pesticide_solution or "Not available" }}</p>
+                            </div>
+                        </div>
 
                         <h2>🏬 Nearby Pesticide Stores</h2>
                         <ul>
-                            {% for store in res.stores %}
-                                <li>
-                                    <strong>{{ store.name }}</strong><br>
-                                    {{ store.address }}<br>
-                                    <a href="{{ store.maps_url }}" target="_blank" class="map-btn">📍 Get Directions</a>
-                                </li>
-                            {% endfor %}
+                            {% if res.stores %}
+                                {% for store in res.stores %}
+                                    <li>
+                                        <strong>{{ store.name }}</strong><br>
+                                        {{ store.address }}<br>
+                                        <a href="{{ store.maps_url }}" target="_blank" class="map-btn">📍 Get Directions</a>
+                                    </li>
+                                {% endfor %}
+                            {% else %}
+                                <li>No nearby stores found.</li>
+                            {% endif %}
                         </ul>
 
                     {% endif %}
