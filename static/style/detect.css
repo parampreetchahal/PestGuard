@@ -8,7 +8,7 @@
 }
 
 body {
-  background-image: url("prediction_back.jpg");
+  background-image: url("test2.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -71,7 +71,7 @@ p {
 }
 
 .upload-box {
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 label {
@@ -88,6 +88,15 @@ input[type="file"] {
   background: rgba(255,255,255,0.8);
   color: #333;
   cursor: pointer;
+}
+
+input[type="text"]{
+padding: 15px;
+border-radius: 8px;
+border: none;
+background: rgba(255,255,255,0.7);
+color: #333;
+cursor: pointer;
 }
 
 button {

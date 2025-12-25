@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
 import os
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+
 from werkzeug.utils import secure_filename
 from PIL import Image
 import numpy as np
@@ -14,14 +15,17 @@ import time
 import requests
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
+from keras.models import load_model
+# Deep learning model
+from keras.applications.efficientnet_v2 import preprocess_input
+
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 supabase = create_client(
     config.SUPABASE_URL,
     config.SUPABASE_KEY
 )
-# Deep learning model
-from tensorflow.keras.models import load_model
-from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
 
 app = Flask(__name__)
 
@@ -44,7 +48,8 @@ pest_classes = {v: k for k, v in class_indices.items()}
 # -------------------------------
 # -------------------------------
 
-#DATABASE CONNECTIVE
+# DATABASE CONNECTIVE
+
 def get_pest_info(pest_name):
     """
     Fetch pest info from Supabase (PostgreSQL)
@@ -91,8 +96,6 @@ def get_pest_info(pest_name):
 
 
 # Cache coordinates per city (reduces repeated requests)
-
-
 
 # Simple in-memory cache to avoid repeated API calls
 _COORDINATE_CACHE = {}
@@ -281,11 +284,11 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
         "maps_url": f"https://www.google.com/maps/search/pesticide+shop+near+{city_name}"
     }]
 
-
-
 # -------------------------------
 # Preprocess image
 # -------------------------------
+
+
 def preprocess_image(image_path):
     img = Image.open(image_path).convert("RGB")
     img = img.resize((244, 244))  # trained size
@@ -342,8 +345,10 @@ def getinfo(api_key, detected_pest):
         "Content-Type": "application/json"
     }
     messages = [
-        {"role": "system", "content": "You are a helpful assistant skilled in fetching practical pest details for farmers."},
-        {"role": "user", "content": f"Give details about this pest: {detected_pest}. Include life cycle, effects, and farmer solutions. Provide only useful info without AI-style filler text."}
+        {"role": "system", "content": "You are a helpful assistant skilled in "
+                                      "fetching practical pest details for farmers."},
+        {"role": "user", "content": f"Give details about this pest: {detected_pest}. Include life cycle, effects, and farmer solutions."
+                                    "Provide only useful info without AI-style filler text."}
     ]
     payload = {
         "model": "llama-3.1-8b-instant",
