@@ -7,74 +7,93 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style/result.css') }}">
 </head>
 <body>
+
 <header>
     <h1>🌱 Pest Detection Results</h1>
 </header>
 
 <main>
-    {% if results %}
-        {% for res in results %}
-            <div class="result-card">
-                <!-- Left column -->
-                <div class="left-side">
-                    <h2>📸 Uploaded Image</h2>
-                    <img src="{{ url_for('static', filename='uploads/' + res.filename) }}" alt="Uploaded Image">
+{% if results %}
+    {% for res in results %}
+    <div class="result-card">
 
-                    {% if res.pest == "No pest found" %}
-                        <h2>❌ No Pest Detected</h2>
-                        <p>Confidence: {{ res.confidence }}% (below threshold)</p>
-                    {% else %}
-                        <h2>🔍 Detection Summary</h2>
-                        <p><strong>Pest Detected:</strong> {{ res.pest }}</p>
-                        <p><strong>Confidence:</strong> {{ res.confidence }}%</p>
+        <!-- LEFT SIDE -->
+        <div class="left-side">
+            <h2>📸 Uploaded Image</h2>
+            <img src="{{ url_for('static', filename='uploads/' + res.filename) }}" alt="Uploaded Image">
 
-                        <h2>🌿 Pest Information</h2>
-                        <p><strong>Effects:</strong> {{ res.effects or "Unknown" }}</p>
+            {% if res.pest == "No pest found" %}
+                <h2>❌ No Pest Detected</h2>
+                <p>Confidence: {{ res.confidence }}% (below threshold)</p>
 
-                        <div class="solutions-grid">
-                            <div class="solution-box">
-                                <h3>🌱 Natural / Cultural Solution</h3>
-                                <p>{{ res.natural_solution or "Not available" }}</p>
+            {% else %}
+                <h2>🔍 Detection Summary</h2>
+                <p><strong>Pest Detected:</strong> {{ res.pest }}</p>
+                <p><strong>Confidence:</strong> {{ res.confidence }}%</p>
+
+                <h2>🌿 Pest Information</h2>
+                <p><strong>Effects:</strong> {{ res.effects or "Unknown" }}</p>
+
+                <div class="solutions-grid">
+                    <div class="solution-box">
+                        <h3>🌱 Natural / Cultural Solution</h3>
+                        <p>{{ res.natural_solution or "Not available" }}</p>
+                    </div>
+
+                    <div class="solution-box">
+                        <h3>🧪 Pesticide / Chemical Solution</h3>
+                        <p>{{ res.pesticide_solution or "Not available" }}</p>
+                    </div>
+                </div>
+
+                <h2>🏬 Nearby Pesticide Stores (within 15 km)</h2>
+
+                {% if res.stores %}
+                    <p style="font-size:14px; color:#2e7d32;">
+                        ✅ {{ res.stores | length }} shops found near you
+                    </p>
+
+                    <div class="store-list">
+                        {% for store in res.stores %}
+                        <div class="store-card">
+                            <div class="store-info">
+                                <strong class="store-name">🏪 {{ store.name }}</strong>
+                                <div class="store-address">📍 {{ store.address }}</div>
                             </div>
 
-                            <div class="solution-box">
-                                <h3>🧪 Pesticide / Chemical Solution</h3>
-                                <p>{{ res.pesticide_solution or "Not available" }}</p>
+                            <div class="store-action">
+                                <a href="{{ store.maps_url }}"
+                                   target="_blank"
+                                   class="nav-btn"
+                                   title="Navigate from current location">
+                                    🧭
+                                </a>
                             </div>
                         </div>
-
-                        <h2>🏬 Nearby Pesticide Stores</h2>
-                        <ul>
-                            {% if res.stores %}
-                                {% for store in res.stores %}
-                                    <li>
-                                        <strong>{{ store.name }}</strong><br>
-                                        {{ store.address }}<br>
-                                        <a href="{{ store.maps_url }}" target="_blank" class="map-btn">📍 Get Directions</a>
-                                    </li>
-                                {% endfor %}
-                            {% else %}
-                                <li>No nearby stores found.</li>
-                            {% endif %}
-                        </ul>
-
-                    {% endif %}
-                </div>
-
-                {% if res.pest != "No pest found" %}
-                <!-- Right column for Get More Info -->
-                <div class="right-side">
-                    <button class="btn-more" onclick="fetchMoreInfo('{{ res.pest }}', this)">
-                        Get More Info
-                    </button>
-                    <div class="more-info-box" style="display:none;"></div>
-                </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>❌ No pesticide shops found within 15 km.</p>
                 {% endif %}
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>No results available. Please upload an image first.</p>
-    {% endif %}
+
+            {% endif %}
+        </div>
+
+        <!-- RIGHT SIDE -->
+        {% if res.pest != "No pest found" %}
+        <div class="right-side">
+            <button class="btn-more" onclick="fetchMoreInfo('{{ res.pest }}', this)">
+                Get More Info
+            </button>
+            <div class="more-info-box"></div>
+        </div>
+        {% endif %}
+
+    </div>
+    {% endfor %}
+{% else %}
+    <p>No results available. Please upload an image first.</p>
+{% endif %}
 </main>
 
 <footer>
@@ -95,11 +114,15 @@ function fetchMoreInfo(pestName, button) {
             button.style.display = "none";
             const box = button.nextElementSibling;
             box.style.display = "block";
+
             let formatted = data.info
                 .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                 .replace(/\n\d+\.\s/g, "<br>• ")
                 .replace(/\n\* /g, "<br>&nbsp;&nbsp;&nbsp;• ");
-            box.innerHTML = `<h3>📘 More Information</h3><div class="info-content">${formatted}</div>`;
+
+            box.innerHTML =
+                `<h3>📘 More Information</h3>
+                 <div class="info-content">${formatted}</div>`;
         } else {
             alert(data.error || "Could not fetch info");
         }
@@ -107,5 +130,6 @@ function fetchMoreInfo(pestName, button) {
     .catch(err => alert("Failed to fetch info: " + err));
 }
 </script>
+
 </body>
 </html>

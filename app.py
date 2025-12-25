@@ -3,17 +3,17 @@ import os
 from werkzeug.utils import secure_filename
 from PIL import Image
 import numpy as np
-import config
 
 from concurrent.futures import ThreadPoolExecutor
 import json
-import config
-from geopy.geocoders import Nominatim
-from geopy.exc import GeocoderTimedOut, GeocoderServiceError, GeocoderUnavailable
-import requests
-import time
+
 from supabase import create_client
 import config
+
+import time
+import requests
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 
 supabase = create_client(
     config.SUPABASE_URL,
@@ -92,10 +92,21 @@ def get_pest_info(pest_name):
 
 # Cache coordinates per city (reduces repeated requests)
 
-_COORDINATE_CACHE = {}
 
-def get_coordinates(city_name, retries=3, timeout=10):
-    """Return (lat, lon) for a city using Nominatim with Photon fallback."""
+
+# Simple in-memory cache to avoid repeated API calls
+_COORDINATE_CACHE = {}
+_STORE_CACHE = {}
+_FAILED_CITY_CACHE = set()
+
+
+def get_coordinates(city_name):
+    """
+    Robust coordinate lookup:
+    1) Photon API (FAST, FREE, STABLE)
+    2) Nominatim fallback (RATE LIMITED)
+    """
+
     if not city_name:
         return None, None
 
@@ -103,111 +114,174 @@ def get_coordinates(city_name, retries=3, timeout=10):
     if key in _COORDINATE_CACHE:
         return _COORDINATE_CACHE[key]
 
-    # --- Try Nominatim ---
-    geolocator = Nominatim(user_agent="pestguard_app (contact: your_email@example.com)", timeout=timeout)
-    for attempt in range(1, retries + 1):
-        try:
-            location = geolocator.geocode(city_name, exactly_one=True)
-            if location:
-                lat, lon = location.latitude, location.longitude
-                _COORDINATE_CACHE[key] = (lat, lon)
-                return lat, lon
-        except (GeocoderTimedOut, GeocoderServiceError, GeocoderUnavailable) as e:
-            print(f"Nominatim error (attempt {attempt}): {e}")
-            time.sleep(1.5 * attempt)
-        except Exception as e:
-            print(f"Unexpected geocode error: {e}")
-            break
-
-    # --- Fallback to Photon API ---
+    # -------------------------------------------------
+    # 1️⃣ PHOTON FIRST (Highly recommended)
+    # -------------------------------------------------
     try:
-        url = f"https://photon.komoot.io/api/?q={city_name}&limit=1"
-        resp = requests.get(url, timeout=timeout)
-        if resp.status_code == 200:
-            data = resp.json()
+        photon_url = f"https://photon.komoot.io/api/?q={city_name}&limit=1"
+        r = requests.get(photon_url, timeout=10)
+
+        if r.status_code == 200:
+            data = r.json()
             if data.get("features"):
-                coords = data["features"][0]["geometry"]["coordinates"]
-                lon, lat = coords[0], coords[1]
+                lon, lat = data["features"][0]["geometry"]["coordinates"]
                 _COORDINATE_CACHE[key] = (lat, lon)
                 return lat, lon
     except Exception as e:
-        print("Photon fallback error:", e)
+        print("⚠️ Photon error:", e)
 
-    return None, None
+    # Small delay before fallback (important)
+    time.sleep(1.2)
 
-def get_nearby_stores(city_name, radius=15000, max_results=5):
-    from config import GOOGLE_MAPS_API_KEY
-
-    lat, lon = get_coordinates(city_name)
-    if not lat or not lon:
-        print(f"⚠️ Could not fetch coordinates for {city_name}")
-        return []
-
-    # ✅ Google Places API (Correct Format)
-    if GOOGLE_MAPS_API_KEY and GOOGLE_MAPS_API_KEY != "DUMMY_KEY":
-        google_url = (
-            "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-            f"?location={lat},{lon}"
-            f"&radius={radius}"
-            f"&keyword=pesticide%20fertilizer%20agro%20farm%20consultant"
-            f"&key={GOOGLE_MAPS_API_KEY}"
+    # -------------------------------------------------
+    # NOMINATIM FALLBACK (STRICT RATE LIMIT)
+    # -------------------------------------------------
+    try:
+        geolocator = Nominatim(
+            user_agent="pestguard-app/1.0 (student project, India)",
+            timeout=10
         )
 
-        try:
-            resp = requests.get(google_url, timeout=10)
-            data = resp.json()
+        location = geolocator.geocode(
+            city_name,
+            exactly_one=True
+        )
 
-            if data.get("status") == "OK":
-                stores = []
-                for place in data["results"][:max_results]:
-                    name = place.get("name", "Store")
-                    address = place.get("vicinity", "Address not available")
+        if location:
+            lat, lon = location.latitude, location.longitude
+            _COORDINATE_CACHE[key] = (lat, lon)
+            return lat, lon
 
-                    plat = place["geometry"]["location"]["lat"]
-                    plon = place["geometry"]["location"]["lng"]
+    except (GeocoderTimedOut, GeocoderServiceError) as e:
+        print("⚠️ Nominatim error:", e)
+    except Exception as e:
+        print("⚠️ Unexpected geocoding error:", e)
 
-                    maps_url = f"https://www.google.com/maps/dir/?api=1&destination={plat},{plon}"
+    # -------------------------------------------------
+    # FAILED
+    # -------------------------------------------------
+    print(f"❌ Could not determine coordinates for: {city_name}")
+    return None, None
 
-                    stores.append({
-                        "name": name,
-                        "address": address,
-                        "maps_url": maps_url,
-                    })
 
-                return stores
-            else:
-                print("⚠️ Google Error:", data.get("status"), data.get("error_message"))
-        except Exception as e:
-            print("❌ Google API error:", e)
+def get_nearby_stores(city_name, radius=15000, max_results=5):
+    if not city_name:
+        return []
 
-    # ✅ Fallback to Photon
+    key = city_name.strip().lower()
+
+    # ===============================
+    # 1️⃣ SUCCESS CACHE (NON-EMPTY ONLY)
+    # ===============================
+    if key in _STORE_CACHE and _STORE_CACHE[key]:
+        print("✅ Using cached store results")
+        return _STORE_CACHE[key]
+
+    # ===============================
+    # 2️⃣ FAILURE / CIRCUIT BREAKER
+    # ===============================
+    if key in _FAILED_CITY_CACHE:
+        print("⛔ Skipping APIs (previous failure)")
+        return [{
+            "name": "Search nearby pesticide shops",
+            "address": city_name,
+            "maps_url": f"https://www.google.com/maps/search/pesticide+shop+near+{city_name}"
+        }]
+
+    # ===============================
+    # 3️⃣ GET COORDINATES
+    # ===============================
+    lat, lon = get_coordinates(city_name)
+    if not lat or not lon:
+        _FAILED_CITY_CACHE.add(key)
+        return [{
+            "name": "Search nearby pesticide shops",
+            "address": city_name,
+            "maps_url": f"https://www.google.com/maps/search/pesticide+shop+near+{city_name}"
+        }]
+
+    stores = []
+
+    # ===============================
+    # 4️⃣ OVERPASS API
+    # ===============================
+    overpass_url = "https://overpass-api.de/api/interpreter"
+    query = f"""
+    [out:json];
+    (
+      node["shop"~"agrovet|farm|garden|agricultural"](around:{radius},{lat},{lon});
+      node["amenity"="pharmacy"](around:{radius},{lat},{lon});
+    );
+    out tags center;
+    """
+
     try:
-        url = f"https://photon.komoot.io/api/?q={city_name}%20fertilizer%20shop&limit={max_results}"
-        resp = requests.get(url, timeout=10)
+        time.sleep(1.5)  # rate safety
+        resp = requests.post(overpass_url, data=query, timeout=20)
+
+        if resp.status_code != 200 or not resp.text.strip():
+            raise Exception("Overpass blocked or empty")
+
         data = resp.json()
 
-        stores = []
-        for feature in data.get("features", []):
-            props = feature.get("properties", {})
-            name = props.get("name") or "Local Agro Store"
-            city = props.get("city") or city_name
-            street = props.get("street", "")
-            address = f"{street}, {city}".strip(", ")
-
-            coords = feature["geometry"]["coordinates"]
-            maps_url = f"https://www.google.com/maps/dir/?api=1&destination={coords[1]},{coords[0]}"
-
+        for el in data.get("elements", [])[:max_results]:
+            tags = el.get("tags", {})
             stores.append({
-                "name": name,
-                "address": address,
-                "maps_url": maps_url
+                "name": tags.get("name", "Local Agro Store"),
+                "address": tags.get("addr:city", city_name),
+                "maps_url": f"https://www.google.com/maps/dir/?api=1&destination={el['lat']},{el['lon']}"
             })
 
-        return stores
+        if stores:
+            _STORE_CACHE[key] = stores
+            print("✅ Stores cached from Overpass")
+            return stores
 
     except Exception as e:
-        print("❌ Photon error:", e)
-        return []
+        print("❌ Overpass error:", e)
+
+    # ===============================
+    # 5️⃣ PHOTON FALLBACK
+    # ===============================
+    try:
+        url = f"https://photon.komoot.io/api/?q=pesticide%20shop%20{city_name}&limit={max_results}"
+        resp = requests.get(url, timeout=10)
+
+        if resp.status_code != 200 or not resp.text.strip():
+            raise Exception("Photon empty")
+
+        data = resp.json()
+
+        for feature in data.get("features", []):
+            props = feature.get("properties", {})
+            coords = feature["geometry"]["coordinates"]
+            stores.append({
+                "name": props.get("name", "Local Agro Store"),
+                "address": props.get("city", city_name),
+                "maps_url": f"https://www.google.com/maps/dir/?api=1&destination={coords[1]},{coords[0]}"
+            })
+
+        if stores:
+            _STORE_CACHE[key] = stores
+            print("✅ Stores cached from Photon")
+            return stores
+
+    except Exception as e:
+        print("❌ Photon fallback failed:", e)
+
+    # ===============================
+    # 6️⃣ MARK CITY FAILED (STOP RETRIES)
+    # ===============================
+    _FAILED_CITY_CACHE.add(key)
+    print("⛔ Marking city as failed, using hard fallback")
+
+    return [{
+        "name": "Search nearby pesticide shops",
+        "address": city_name,
+        "maps_url": f"https://www.google.com/maps/search/pesticide+shop+near+{city_name}"
+    }]
+
+
 
 # -------------------------------
 # Preprocess image
@@ -229,7 +303,7 @@ executor = ThreadPoolExecutor(max_workers=2)
 
 def predict_image(image_path, threshold=50):
     img_array = preprocess_image(image_path)
-    prediction = model.predict(img_array)
+    prediction = model.predict(img_array, verbose=0)
     pest_index = np.argmax(prediction, axis=1)[0]
     confidence = round(np.max(prediction) * 100, 2)
 
@@ -298,9 +372,10 @@ def home():
 @app.route('/detect', methods=["GET", "POST"])
 def detect():
     if request.method == "POST":
-        city_name = request.form.get("shoplocation")
+        city_name = request.form.get("shoplocation", "").strip()
+
         if not city_name:
-            city_name = "Delhi"  # fallback
+            city_name = None
 
         files = request.files.getlist("images")
         results = []
@@ -316,8 +391,12 @@ def detect():
 
         for future in futures:
             res = future.result()
-            if res["pest"] != "No pest found":
+
+            if res["pest"] != "No pest found" and city_name:
                 res["stores"] = get_nearby_stores(city_name)
+            else:
+                res["stores"] = []
+
             results.append(res)
 
         return render_template("result.html", results=results)
