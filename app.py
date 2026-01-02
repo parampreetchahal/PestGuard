@@ -17,7 +17,9 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 from keras.models import load_model
 # Deep learning model
-from keras.applications.efficientnet_v2 import preprocess_input
+#from keras.applications.efficientnet_v2 import preprocess_input
+import tensorflow as tf
+from keras.applications.efficientnet import preprocess_input
 
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -35,14 +37,12 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # Load trained model once
-model = load_model("best_model2.h5")
+model = load_model("best_pestnet.keras")
 
 # Load class indices from training
-with open("class_labels.json", "r") as f:
-    class_indices = json.load(f)
+with open("class_names.json", "r") as f:
+    pest_classes = json.load(f)
 
-# Reverse mapping: index -> class name
-pest_classes = {v: k for k, v in class_indices.items()}
 
 
 # -------------------------------
@@ -291,7 +291,7 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
 
 def preprocess_image(image_path):
     img = Image.open(image_path).convert("RGB")
-    img = img.resize((244, 244))  # trained size
+    img = img.resize((300, 300))  # trained size
     img_array = np.array(img)
     img_array = preprocess_input(img_array)
     img_array = np.expand_dims(img_array, axis=0)
@@ -304,7 +304,7 @@ def preprocess_image(image_path):
 executor = ThreadPoolExecutor(max_workers=2)
 
 
-def predict_image(image_path, threshold=50):
+def predict_image(image_path, threshold=75):
     img_array = preprocess_image(image_path)
     prediction = model.predict(img_array, verbose=0)
     pest_index = np.argmax(prediction, axis=1)[0]
