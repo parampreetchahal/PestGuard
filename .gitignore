@@ -1,0 +1,62 @@
+# .gitignore file content
+# Database files (likely your large files)
+*.db
+*.sqlite3
+*.dump
+*.sql
+data.sql
+backup.sql
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+*.env
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Large media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+
+# Dataset files (common large files)
+*.csv
+*.xlsx
+*.xls
+*.jsonl
+*.pkl
+*.h5
+*.hdf5
+*.npy
