@@ -20,7 +20,9 @@
         <!-- LEFT SIDE -->
         <div class="left-side">
             <h2>📸 Uploaded Image</h2>
-            <img src="{{ url_for('static', filename='uploads/' + res.filename) }}" alt="Uploaded Image">
+            <img src="{{ url_for('static', filename='uploads/' ~ res.filename) }}"
+                    alt="Uploaded Image"
+                    loading="lazy">
 
             {% if res.pest == "No pest found" %}
                 <h2>❌ No Pest Detected</h2>
@@ -32,9 +34,12 @@
                 <p><strong>Confidence:</strong> {{ res.confidence }}%</p>
 
                 <h2>🌿 Pest Information</h2>
-                <p><strong>Effects:</strong> {{ res.effects or "Unknown" }}</p>
-
                 <div class="solutions-grid">
+                    <div class="solution-box">
+                        <h3>🦠 Effects</h3>
+                        <p>{{ res.effects or "Unknown" }}</p>
+                    </div>
+
                     <div class="solution-box">
                         <h3>🌱 Natural / Cultural Solution</h3>
                         <p>{{ res.natural_solution or "Not available" }}</p>

@@ -16,13 +16,17 @@ import requests
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 from keras.models import load_model
-# Deep learning model
-#from keras.applications.efficientnet_v2 import preprocess_input
-import tensorflow as tf
+
+from uuid import uuid4
+from datetime import datetime
+
 from keras.applications.efficientnet import preprocess_input
 
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+LOW_CONF_BUCKET = "low_confidence_images"
+LOW_CONF_TABLE = "low_confidence_detections"
 
 supabase = create_client(
     config.SUPABASE_URL,
@@ -36,20 +40,17 @@ UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
+
 # Load trained model once
-model = load_model("best_pestnet.keras")
+model = load_model("./Models/best_pestnet.keras")
+
 
 # Load class indices from training
 with open("class_names.json", "r") as f:
     pest_classes = json.load(f)
 
 
-
-# -------------------------------
-# -------------------------------
-
 # DATABASE CONNECTIVE
-
 def get_pest_info(pest_name):
     """
     Fetch pest info from Supabase (PostgreSQL)
@@ -94,9 +95,7 @@ def get_pest_info(pest_name):
             "pesticide_solution": "N/A"
         }
 
-
 # Cache coordinates per city (reduces repeated requests)
-
 # Simple in-memory cache to avoid repeated API calls
 _COORDINATE_CACHE = {}
 _STORE_CACHE = {}
@@ -286,9 +285,6 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
 
 # -------------------------------
 # Preprocess image
-# -------------------------------
-
-
 def preprocess_image(image_path):
     img = Image.open(image_path).convert("RGB")
     img = img.resize((300, 300))  # trained size
@@ -297,11 +293,39 @@ def preprocess_image(image_path):
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
-
 # -------------------------------
 # Thread pool for async predictions
-# -------------------------------
 executor = ThreadPoolExecutor(max_workers=2)
+
+def store_low_confidence_image(image_path, confidence):
+    """
+    Stores raw image + metadata for low-confidence predictions
+    """
+    try:
+        # Read image bytes
+        with open(image_path, "rb") as f:
+            image_bytes = f.read()
+
+        storage_path = f"{datetime.now().strftime('%Y/%m')}/{uuid4()}.jpg"
+
+        # Upload to Supabase Storage
+        supabase.storage.from_(LOW_CONF_BUCKET).upload(
+            storage_path,
+            image_bytes,
+            {"content-type": "image/jpeg"}
+        )
+
+        # Insert metadata
+        supabase.table(LOW_CONF_TABLE).insert({
+            "image_path": storage_path,
+            "confidence": confidence,
+            "predicted_pest": None  # model unsure
+        }).execute()
+
+        print("📥 Stored low-confidence image:", storage_path)
+
+    except Exception as e:
+        print("❌ Failed to store low-confidence image:", e)
 
 
 def predict_image(image_path, threshold=75):
@@ -310,7 +334,10 @@ def predict_image(image_path, threshold=75):
     pest_index = np.argmax(prediction, axis=1)[0]
     confidence = round(np.max(prediction) * 100, 2)
 
-    if confidence < threshold:  # Low confidence → No pest
+    if confidence < threshold:  # Low confidence case
+        # 🔽 STORE IMAGE + METADATA
+        store_low_confidence_image(image_path, confidence)
+
         return {
             "filename": os.path.basename(image_path),
             "pest": "No pest found",
@@ -337,7 +364,6 @@ def predict_image(image_path, threshold=75):
 
 # -------------------------------
 # AI Info Fetch Function
-# -------------------------------
 def getinfo(api_key, detected_pest):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
@@ -366,7 +392,6 @@ def getinfo(api_key, detected_pest):
     return data["choices"][0]["message"]["content"]
 
 
-# -------------------------------
 # Flask Routes
 # -------------------------------
 @app.route('/')
@@ -429,8 +454,6 @@ def more_info():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-# -------------------------------
 # Run the Flask App
 # -------------------------------
 if __name__ == "__main__":

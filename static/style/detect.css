@@ -8,7 +8,7 @@
 }
 
 body {
-  background-image: url("test2.png");
+  background-image: url("../style/test2.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -133,9 +133,8 @@ button:hover {
 
 footer {
   width: 100%;
-  position: fixed;
+  position: relative;
   left: 0;
-  bottom: 0;
   background: rgba(0, 10, 20, 0.50);
   text-align: center;
   padding: 15px;
@@ -158,4 +157,17 @@ footer {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+input[type="file"] {
+  width: 100%;
+  max-width: 420px;
+}
+
+@media (max-width: 768px) {
+  h1 { font-size: 28px; }
+  p { font-size: 16px; }
+  label { font-size: 16px; }
+  button { width: 100%; max-width: 260px; }
+  nav ul { flex-wrap: wrap; gap: 20px; }
 }

@@ -3,38 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <title>PestGuard - Smart Pest Detection</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style/myhome.css') }}">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet"
+        href="{{ url_for('static', filename='style/myhome.css') }}">
 </head>
 <body>
-  <header>
-    <nav>
-      <ul>
-        <li><a href="#">🏠 Home</a></li>
-        <li><a href="#">ℹ️ About</a></li>
-        <li><a href="#">🛠️ Solutions</a></li>
-        <li><a href="#">📩 Contact</a></li>
-      </ul>
-    </nav>
-  </header>
 
-  <main>
-    <h1> PestGuard - Smart Pest Detection</h1>
-    <p>
-      <b>PestGuard</b> is an intelligent pest detection platform designed to help farmers 
-      and agricultural experts identify harmful pests from images and data.  
-      Using advanced AI and machine learning, PestGuard not only detects pests accurately 
-      but also provides <b>practical solutions</b> for controlling and preventing crop damage.  
-      Empowering farmers with the right knowledge ensures healthier crops and sustainable farming.
-    </p>
+<header>
+  <nav>
+    <ul>
+      <li><a href="{{ url_for('home') }}">🏠 Home</a></li>
+      <li><a href="#about">ℹ️ About</a></li>
+      <li><a href="#solutions">🛠️ Solutions</a></li>
+      <li><a href="#contact">📩 Contact</a></li>
+    </ul>
+  </nav>
+</header>
 
-    <h2>Upload an image or click below to start pest detection</h2>
-    <form action="/detect">
-      <input type="submit" value="🔍 Detect">
-    </form>
-  </main>
+<main>
+  <h1>PestGuard - Smart Pest Detection</h1>
 
-  <footer>
-    © 2025 PestGuard | Smarter Farming, Safer Crops
-  </footer>
+  <p>
+    <b>PestGuard</b> is an intelligent pest detection platform designed to help farmers
+    and agricultural experts identify harmful pests using AI-driven image analysis.
+    It provides practical, farmer-friendly solutions to prevent crop damage and
+    improve yield sustainability.
+  </p>
+
+  <h2>Upload an image to begin pest detection</h2>
+
+  <form action="{{ url_for('detect') }}" method="get">
+    <input type="submit" value="🔍 Detect">
+  </form>
+</main>
+
+<footer>
+  © 2025 PestGuard | Smarter Farming, Safer Crops
+</footer>
+
 </body>
 </html>

@@ -9,7 +9,7 @@
 }
 
 body {
-  background-image: url("home.png");
+  background-image: url("../style/home.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -97,4 +97,11 @@ footer {
   padding: 15px;
   font-size: 14px;
   color: #bbb;
+}
+
+@media (max-width: 768px) {
+  h1 { font-size: 30px; }
+  h2 { font-size: 20px; }
+  p  { font-size: 16px; }
+  nav ul { gap: 20px; flex-wrap: wrap; }
 }

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PestGuard - Detect Pests</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style/detect.css') }}">
 </head>
@@ -11,8 +11,8 @@
   <header>
     <nav>
       <ul>
-        <li><a href="/">🏠 Home</a></li>
-        <li><a href="/detect">🔍 Detect</a></li>
+        <li><a href="{{ url_for('home') }}">🏠 Home</a></li>
+        <li><a href="{{ url_for('detect') }}">🔍 Detect</a></li>
         <li><a href="#">🛠️ Solutions</a></li>
         <li><a href="#">📩 Contact</a></li>
       </ul>
