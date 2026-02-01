@@ -19,6 +19,8 @@ from keras.models import load_model
 
 from uuid import uuid4
 from datetime import datetime
+from scipy.stats import entropy
+import re
 
 from keras.applications.efficientnet import preprocess_input
 
@@ -95,6 +97,29 @@ def get_pest_info(pest_name):
             "pesticide_solution": "N/A"
         }
 
+
+
+def is_valid_city(city_name):
+    if not city_name:
+        return False
+
+    city_name = city_name.strip()
+
+    # Must contain letters
+    if not re.search(r"[a-zA-Z]", city_name):
+        return False
+
+    # Reject symbols-only / garbage
+    if re.fullmatch(r"[^a-zA-Z\s\-\.]+", city_name):
+        return False
+
+    # Minimum length
+    if len(city_name) < 3:
+        return False
+
+    return True
+
+
 # Cache coordinates per city (reduces repeated requests)
 # Simple in-memory cache to avoid repeated API calls
 _COORDINATE_CACHE = {}
@@ -108,8 +133,8 @@ def get_coordinates(city_name):
     1) Photon API (FAST, FREE, STABLE)
     2) Nominatim fallback (RATE LIMITED)
     """
-
-    if not city_name:
+    if not is_valid_city(city_name):
+        print(f"❌ Invalid city input: {city_name}")
         return None, None
 
     key = city_name.strip().lower()
@@ -120,6 +145,7 @@ def get_coordinates(city_name):
     # 1️⃣ PHOTON FIRST (Highly recommended)
     # -------------------------------------------------
     try:
+        #query=f"{city_name}, India"
         photon_url = f"https://photon.komoot.io/api/?q={city_name}&limit=1"
         r = requests.get(photon_url, timeout=10)
 
@@ -331,11 +357,33 @@ def store_low_confidence_image(image_path, confidence):
 def predict_image(image_path, threshold=75):
     img_array = preprocess_image(image_path)
     prediction = model.predict(img_array, verbose=0)
-    pest_index = np.argmax(prediction, axis=1)[0]
-    confidence = round(np.max(prediction) * 100, 2)
 
-    if confidence < threshold:  # Low confidence case
-        # 🔽 STORE IMAGE + METADATA
+    # ── probabilities for the single image
+    probs = prediction[0]
+
+    # ── predicted class
+    pest_index = int(np.argmax(probs))
+    detected_pest = pest_classes[pest_index]
+
+    # ── confidence metrics
+    confidence = round(float(np.max(probs)) * 100, 2)
+    uncertainty = entropy(probs)
+
+    # ── top-2 gap (model indecision check)
+    top2 = np.sort(probs)[-2:]
+    top2_gap = top2[1] - top2[0]
+
+    # ── safety thresholds
+    MIN_CONFIDENCE = 60      # hard floor
+    MAX_ENTROPY = 1.5        # higher = more uncertain
+    MIN_TOP2_GAP = 0.15      # small gap = confusion
+
+    # ── low confidence / uncertain prediction
+    if (
+        confidence < max(threshold, MIN_CONFIDENCE)
+        or uncertainty > MAX_ENTROPY
+        or top2_gap < MIN_TOP2_GAP
+    ):
         store_low_confidence_image(image_path, confidence)
 
         return {
@@ -348,7 +396,7 @@ def predict_image(image_path, threshold=75):
             "stores": []
         }
 
-    detected_pest = pest_classes[pest_index]
+    # ── confident prediction
     pest_info = get_pest_info(detected_pest)
 
     return {
@@ -358,9 +406,8 @@ def predict_image(image_path, threshold=75):
         "effects": pest_info.get("effects", "Unknown"),
         "natural_solution": pest_info.get("natural_solution", "Unknown"),
         "pesticide_solution": pest_info.get("pesticide_solution", "Unknown"),
-        "stores": []  # Stores will be added in /detect
+        "stores": []
     }
-
 
 # -------------------------------
 # AI Info Fetch Function
