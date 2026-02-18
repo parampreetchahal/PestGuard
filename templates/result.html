@@ -20,9 +20,11 @@
         <!-- LEFT SIDE -->
         <div class="left-side">
             <h2>📸 Uploaded Image</h2>
-            <img src="{{ url_for('static', filename='uploads/' ~ res.filename) }}"
-                    alt="Uploaded Image"
-                    loading="lazy">
+
+            <!-- ✅ FIXED HERE -->
+            <img src="data:image/jpeg;base64,{{ res.image_data }}"
+                 alt="Uploaded Image"
+                 loading="lazy">
 
             {% if res.pest == "No pest found" %}
                 <h2>❌ No Pest Detected</h2>
@@ -90,7 +92,7 @@
             <button class="btn-more" onclick="fetchMoreInfo('{{ res.pest }}', this)">
                 Get More Info
             </button>
-            <div class="more-info-box"></div>
+            <div class="more-info-box" style="display: none; position:relative;"></div>
         </div>
         {% endif %}
 
@@ -108,6 +110,16 @@
 
 <script>
 function fetchMoreInfo(pestName, button) {
+
+    const box = button.nextElementSibling;
+
+    // If already loaded once, just show it again
+    if (box.getAttribute("data-loaded") === "true") {
+        button.style.display = "none";
+        box.style.display = "block";
+        return;
+    }
+
     fetch("/more_info", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
@@ -116,25 +128,42 @@ function fetchMoreInfo(pestName, button) {
     .then(res => res.json())
     .then(data => {
         if (data.info) {
-            button.style.display = "none";
-            const box = button.nextElementSibling;
-            box.style.display = "block";
 
             let formatted = data.info
                 .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                 .replace(/\n\d+\.\s/g, "<br>• ")
                 .replace(/\n\* /g, "<br>&nbsp;&nbsp;&nbsp;• ");
 
-            box.innerHTML =
-                `<h3>📘 More Information</h3>
-                 <div class="info-content">${formatted}</div>`;
-        } else {
+            box.innerHTML = `
+                <button onclick="closeInfo(this)"
+                        style="position:absolute; top:5px; right:5px;
+                               background:none; border:none; font-size:18px;
+                               cursor:pointer;">❌</button>
+                <h3> <strong> More Information </>strong> </h3>
+                <div class="info-content">${formatted}</div>
+            `;
+
+            box.style.display = "block";
+            button.style.display = "none";
+
+            box.setAttribute("data-loaded", "true");
+        }
+        else {
             alert(data.error || "Could not fetch info");
         }
     })
     .catch(err => alert("Failed to fetch info: " + err));
 }
+
+function closeInfo(closeBtn) {
+    const box = closeBtn.parentElement;
+    const button = box.parentElement.querySelector(".btn-more");
+
+    box.style.display = "none";
+    button.style.display = "inline-block";
+}
 </script>
+
 
 </body>
 </html>

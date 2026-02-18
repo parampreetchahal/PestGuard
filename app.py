@@ -1,11 +1,11 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 
-from werkzeug.utils import secure_filename
+
 from PIL import Image
 import numpy as np
 
-from concurrent.futures import ThreadPoolExecutor
+
 import json
 
 from supabase import create_client
@@ -23,9 +23,13 @@ from scipy.stats import entropy
 import re
 
 from keras.applications.efficientnet import preprocess_input
+from threading import Lock
+from upstash_redis import Redis
 
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import io
+import base64
+
+geo_lock=Lock()
 
 LOW_CONF_BUCKET = "low_confidence_images"
 LOW_CONF_TABLE = "low_confidence_detections"
@@ -35,17 +39,27 @@ supabase = create_client(
     config.SUPABASE_KEY
 )
 
+redis = Redis(
+    url=config.UPSTASH_REDIS_REST_URL,
+    token=config.UPSTASH_REDIS_REST_TOKEN
+)
+
+
+
 app = Flask(__name__)
 
-# Upload folder
-UPLOAD_FOLDER = "static/uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5MB limit
+
 
 
 # Load trained model once
 model = load_model("./Models/best_pestnet.keras")
+def warmup_model():
+    dummy_input = np.zeros((1,300,300,3))
+    model.predict(dummy_input,verbose=0)
 
+warmup_model()
 
 # Load class indices from training
 with open("class_names.json", "r") as f:
@@ -68,6 +82,17 @@ def get_pest_info(pest_name):
     if not pest_name:
         return default
 
+    cache_key = f"pest:{pest_name.lower()}"
+
+    cached = redis.get(cache_key)
+    if cached:
+        print("⚡⚡ Redis Hit")
+
+        if isinstance(cached, bytes):
+            cached = cached.decode("utf-8")
+
+        return json.loads(cached)
+
     try:
         response = (
             supabase
@@ -80,12 +105,17 @@ def get_pest_info(pest_name):
 
         if response.data:
             row = response.data[0]
-            return {
+            pest_result = {
                 "effects": row.get("effects", "Unknown"),
                 "natural_solution": row.get("natural_solution", "Unknown"),
                 # 🔁 map chemical_solution → pesticide_solution (your app expects this key)
                 "pesticide_solution": row.get("chemical_solution", "Unknown")
             }
+            #store in redis
+            redis.set(cache_key,json.dumps(pest_result),ex=86400)
+            print("redis set")
+            return pest_result
+
 
         return default
 
@@ -144,52 +174,53 @@ def get_coordinates(city_name):
     # -------------------------------------------------
     # 1️⃣ PHOTON FIRST (Highly recommended)
     # -------------------------------------------------
-    try:
-        #query=f"{city_name}, India"
-        photon_url = f"https://photon.komoot.io/api/?q={city_name}&limit=1"
-        r = requests.get(photon_url, timeout=10)
+    with geo_lock:
+        try:
+            #query=f"{city_name}, India"
+            photon_url = f"https://photon.komoot.io/api/?q={city_name}&limit=1"
+            r = requests.get(photon_url, timeout=10)
 
-        if r.status_code == 200:
-            data = r.json()
-            if data.get("features"):
-                lon, lat = data["features"][0]["geometry"]["coordinates"]
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("features"):
+                    lon, lat = data["features"][0]["geometry"]["coordinates"]
+                    _COORDINATE_CACHE[key] = (lat, lon)
+                    return lat, lon
+        except Exception as e:
+            print("⚠️ Photon error:", e)
+
+        # Small delay before fallback (important)
+        time.sleep(1.2)
+
+        # -------------------------------------------------
+        # NOMINATIM FALLBACK (STRICT RATE LIMIT)
+        # -------------------------------------------------
+        try:
+            geolocator = Nominatim(
+                user_agent="pestguard-app/1.0 (student project, India)",
+                timeout=10
+            )
+
+            location = geolocator.geocode(
+                city_name,
+                exactly_one=True
+            )
+
+            if location:
+                lat, lon = location.latitude, location.longitude
                 _COORDINATE_CACHE[key] = (lat, lon)
                 return lat, lon
-    except Exception as e:
-        print("⚠️ Photon error:", e)
 
-    # Small delay before fallback (important)
-    time.sleep(1.2)
+        except (GeocoderTimedOut, GeocoderServiceError) as e:
+            print("⚠️ Nominatim error:", e)
+        except Exception as e:
+            print("⚠️ Unexpected geocoding error:", e)
 
-    # -------------------------------------------------
-    # NOMINATIM FALLBACK (STRICT RATE LIMIT)
-    # -------------------------------------------------
-    try:
-        geolocator = Nominatim(
-            user_agent="pestguard-app/1.0 (student project, India)",
-            timeout=10
-        )
-
-        location = geolocator.geocode(
-            city_name,
-            exactly_one=True
-        )
-
-        if location:
-            lat, lon = location.latitude, location.longitude
-            _COORDINATE_CACHE[key] = (lat, lon)
-            return lat, lon
-
-    except (GeocoderTimedOut, GeocoderServiceError) as e:
-        print("⚠️ Nominatim error:", e)
-    except Exception as e:
-        print("⚠️ Unexpected geocoding error:", e)
-
-    # -------------------------------------------------
-    # FAILED
-    # -------------------------------------------------
-    print(f"❌ Could not determine coordinates for: {city_name}")
-    return None, None
+        # -------------------------------------------------
+        # FAILED
+        # -------------------------------------------------
+        print(f"❌ Could not determine coordinates for: {city_name}")
+        return None, None
 
 
 def get_nearby_stores(city_name, radius=15000, max_results=5):
@@ -235,13 +266,13 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
     # ===============================
     overpass_url = "https://overpass-api.de/api/interpreter"
     query = f"""
-    [out:json];
-    (
-      node["shop"~"agrovet|farm|garden|agricultural"](around:{radius},{lat},{lon});
-      node["amenity"="pharmacy"](around:{radius},{lat},{lon});
-    );
-    out tags center;
-    """
+        [out:json];
+        (
+          nw["shop"~"agrovet|farm|garden|agricultural"](around:{radius},{lat},{lon});
+          nw["amenity"="pharmacy"](around:{radius},{lat},{lon});
+        );
+        out tags center;
+        """
 
     try:
         time.sleep(1.5)  # rate safety
@@ -311,30 +342,23 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
 
 # -------------------------------
 # Preprocess image
-def preprocess_image(image_path):
-    img = Image.open(image_path).convert("RGB")
-    img = img.resize((300, 300))  # trained size
+def preprocess_image_from_pil(pil_image):
+    img = pil_image.convert("RGB").resize((300, 300))
     img_array = np.array(img)
     img_array = preprocess_input(img_array)
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
-# -------------------------------
-# Thread pool for async predictions
-executor = ThreadPoolExecutor(max_workers=2)
 
-def store_low_confidence_image(image_path, confidence):
+def store_low_confidence_image(image_bytes, confidence):
     """
     Stores raw image + metadata for low-confidence predictions
+    (No local disk usage)
     """
     try:
-        # Read image bytes
-        with open(image_path, "rb") as f:
-            image_bytes = f.read()
-
         storage_path = f"{datetime.now().strftime('%Y/%m')}/{uuid4()}.jpg"
 
-        # Upload to Supabase Storage
+        # Upload directly from bytes
         supabase.storage.from_(LOW_CONF_BUCKET).upload(
             storage_path,
             image_bytes,
@@ -345,7 +369,7 @@ def store_low_confidence_image(image_path, confidence):
         supabase.table(LOW_CONF_TABLE).insert({
             "image_path": storage_path,
             "confidence": confidence,
-            "predicted_pest": None  # model unsure
+            "predicted_pest": None
         }).execute()
 
         print("📥 Stored low-confidence image:", storage_path)
@@ -353,41 +377,35 @@ def store_low_confidence_image(image_path, confidence):
     except Exception as e:
         print("❌ Failed to store low-confidence image:", e)
 
+def predict_image_from_pil(pil_image, image_bytes, threshold=75):
 
-def predict_image(image_path, threshold=75):
-    img_array = preprocess_image(image_path)
+    img_array = preprocess_image_from_pil(pil_image)
     prediction = model.predict(img_array, verbose=0)
 
-    # ── probabilities for the single image
     probs = prediction[0]
 
-    # ── predicted class
     pest_index = int(np.argmax(probs))
     detected_pest = pest_classes[pest_index]
 
-    # ── confidence metrics
     confidence = round(float(np.max(probs)) * 100, 2)
     uncertainty = entropy(probs)
 
-    # ── top-2 gap (model indecision check)
     top2 = np.sort(probs)[-2:]
     top2_gap = top2[1] - top2[0]
 
-    # ── safety thresholds
-    MIN_CONFIDENCE = 60      # hard floor
-    MAX_ENTROPY = 1.5        # higher = more uncertain
-    MIN_TOP2_GAP = 0.15      # small gap = confusion
+    MIN_CONFIDENCE = 60
+    MAX_ENTROPY = 1.5
+    MIN_TOP2_GAP = 0.15
 
-    # ── low confidence / uncertain prediction
+    # 🟡 LOW CONFIDENCE → STORE IMAGE
     if (
         confidence < max(threshold, MIN_CONFIDENCE)
         or uncertainty > MAX_ENTROPY
         or top2_gap < MIN_TOP2_GAP
     ):
-        store_low_confidence_image(image_path, confidence)
+        store_low_confidence_image(image_bytes, confidence)
 
         return {
-            "filename": os.path.basename(image_path),
             "pest": "No pest found",
             "confidence": confidence,
             "effects": "N/A",
@@ -396,11 +414,10 @@ def predict_image(image_path, threshold=75):
             "stores": []
         }
 
-    # ── confident prediction
+    # 🟢 CONFIDENT PREDICTION
     pest_info = get_pest_info(detected_pest)
 
     return {
-        "filename": os.path.basename(image_path),
         "pest": detected_pest,
         "confidence": confidence,
         "effects": pest_info.get("effects", "Unknown"),
@@ -408,7 +425,6 @@ def predict_image(image_path, threshold=75):
         "pesticide_solution": pest_info.get("pesticide_solution", "Unknown"),
         "stores": []
     }
-
 # -------------------------------
 # AI Info Fetch Function
 def getinfo(api_key, detected_pest):
@@ -450,24 +466,26 @@ def home():
 def detect():
     if request.method == "POST":
         city_name = request.form.get("shoplocation", "").strip()
-
         if not city_name:
             city_name = None
 
         files = request.files.getlist("images")
         results = []
 
-        futures = []
         for file in files:
             if file.filename == "":
                 continue
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-            file.save(filepath)
-            futures.append(executor.submit(predict_image, filepath))
 
-        for future in futures:
-            res = future.result()
+            image_bytes = file.read()
+            try:
+                pil_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            except Exception:
+                continue  # skip invalid image
+
+            res = predict_image_from_pil(pil_image, image_bytes)
+
+            encoded_img = base64.b64encode(image_bytes).decode("utf-8")
+            res["image_data"] = encoded_img
 
             if res["pest"] != "No pest found" and city_name:
                 res["stores"] = get_nearby_stores(city_name)
