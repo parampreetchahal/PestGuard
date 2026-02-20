@@ -3,122 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pest Detection Results</title>
+    <title>Results | PestGuard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style/result.css') }}">
 </head>
 <body>
 
-<header>
-    <h1>🌱 Pest Detection Results</h1>
+<header class="main-header">
+    <div class="header-content">
+        <h1>🌱 Analysis <span>Report</span></h1>
+        <div class="header-actions">
+            <a href="{{ url_for('detect') }}" class="btn-outline">🔄 New Scan</a>
+            <a href="{{ url_for('home') }}" class="btn-outline">🏠 Home</a>
+        </div>
+    </div>
 </header>
 
-<main>
+<main class="results-container">
 {% if results %}
     {% for res in results %}
-    <div class="result-card">
+    <div class="report-grid">
 
-        <!-- LEFT SIDE -->
-        <div class="left-side">
-            <h2>📸 Uploaded Image</h2>
+        <div class="glass-card left-column">
+            <div class="card-header">
+                <span class="status-badge {% if res.pest == 'No pest found' %}neutral{% else %}warning{% endif %}">
+                    {{ "Scan Result" if res.pest != "No pest found" else "Inconclusive" }}
+                </span>
+                <h2>Detection Summary</h2>
+            </div>
 
-            <!-- ✅ FIXED HERE -->
-            <img src="data:image/jpeg;base64,{{ res.image_data }}"
-                 alt="Uploaded Image"
-                 loading="lazy">
+            <div class="image-preview">
+                <img src="data:image/jpeg;base64,{{ res.image_data }}" alt="Scan" class="scan-img">
+                <div class="confidence-tag">{{ res.confidence }}% Confidence</div>
+            </div>
 
-            {% if res.pest == "No pest found" %}
-                <h2>❌ No Pest Detected</h2>
-                <p>Confidence: {{ res.confidence }}% (below threshold)</p>
+            <div class="pest-info-header">
+                <h3 class="pest-name">{{ res.pest }}</h3>
 
-            {% else %}
-                <h2>🔍 Detection Summary</h2>
-                <p><strong>Pest Detected:</strong> {{ res.pest }}</p>
-                <p><strong>Confidence:</strong> {{ res.confidence }}%</p>
+                {# ONLY SHOW IMPACT IF PEST FOUND #}
+                {% if res.pest != "No pest found" %}
+                <div class="impact-statement">
+                    <strong>Impact:</strong> {{ res.effects or "Significant risk to foliage and yield." }}
+                </div>
+                {% else %}
+                <p class="small-text">Our model could not identify a specific pest in this image. Please ensure the pest is clearly visible and try scanning again.</p>
+                {% endif %}
+            </div>
 
-                <h2>🌿 Pest Information</h2>
-                <div class="solutions-grid">
-                    <div class="solution-box">
-                        <h3>🦠 Effects</h3>
-                        <p>{{ res.effects or "Unknown" }}</p>
+            {# ONLY SHOW TREATMENT IF PEST FOUND #}
+            {% if res.pest != "No pest found" %}
+            <hr class="divider">
+            <div class="treatment-section">
+                <h3>Recommended Treatment</h3>
+                <div class="treatment-stack">
+                    <div class="treatment-box natural">
+                        <div class="box-icon">🍃</div>
+                        <div class="box-text">
+                            <h4>Organic / Cultural</h4>
+                            <p>{{ res.natural_solution or "No organic data available." }}</p>
+                        </div>
                     </div>
-
-                    <div class="solution-box">
-                        <h3>🌱 Natural / Cultural Solution</h3>
-                        <p>{{ res.natural_solution or "Not available" }}</p>
-                    </div>
-
-                    <div class="solution-box">
-                        <h3>🧪 Pesticide / Chemical Solution</h3>
-                        <p>{{ res.pesticide_solution or "Not available" }}</p>
+                    <div class="treatment-box chemical">
+                        <div class="box-icon :">🧪</div>
+                        <div class="box-text">
+                            <h4>Chemical / Pesticide</h4>
+                            <p>{{ res.pesticide_solution or "Consult a specialist." }}</p>
+                        </div>
                     </div>
                 </div>
-
-                <h2>🏬 Nearby Pesticide Stores (within 15 km)</h2>
-
-                {% if res.stores %}
-                    <p style="font-size:14px; color:#2e7d32;">
-                        ✅ {{ res.stores | length }} shops found near you
-                    </p>
-
-                    <div class="store-list">
-                        {% for store in res.stores %}
-                        <div class="store-card">
-                            <div class="store-info">
-                                <strong class="store-name">🏪 {{ store.name }}</strong>
-                                <div class="store-address">📍 {{ store.address }}</div>
-                            </div>
-
-                            <div class="store-action">
-                                <a href="{{ store.maps_url }}"
-                                   target="_blank"
-                                   class="nav-btn"
-                                   title="Navigate from current location">
-                                    🧭
-                                </a>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p>❌ No pesticide shops found within 15 km.</p>
-                {% endif %}
-
+            </div>
             {% endif %}
         </div>
 
-        <!-- RIGHT SIDE -->
-        {% if res.pest != "No pest found" %}
-        <div class="right-side">
-            <button class="btn-more" onclick="fetchMoreInfo('{{ res.pest }}', this)">
-                Get More Info
-            </button>
-            <div class="more-info-box" style="display: none; position:relative;"></div>
+        <div class="right-column">
+            {# ONLY SHOW AI DOSSIER IF PEST FOUND #}
+            {% if res.pest != "No pest found" %}
+            <div class="glass-card ai-card">
+                <h2>Pest Intelligence</h2>
+                <p class="small-text">Need deeper technical details about this species?</p>
+                <button class="btn-ai-info" onclick="fetchMoreInfo('{{ res.pest }}', this)">
+                    Get Technical Dossier
+                </button>
+                <div class="more-info-box" style="display: none;"></div>
+            </div>
+            {% endif %}
+
+            <div class="glass-card stores-card">
+                <div class="card-header">
+                    <h2>Nearby Shops</h2>
+                    <span class="count-tag">{{ res.stores | length if res.stores else 0 }} Found</span>
+                </div>
+                <div class="store-scroller">
+                    {% if res.stores %}
+                        {% for store in res.stores %}
+                        <div class="store-item">
+                            <div class="store-meta">
+                                <strong>{{ store.name }}</strong>
+                                <small>📍 {{ store.address }}</small>
+                            </div>
+                            <a href="{{ store.maps_url }}" target="_blank" class="nav-icon">🧭</a>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-state">No stores found within 15km.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        {% endif %}
 
     </div>
     {% endfor %}
-{% else %}
-    <p>No results available. Please upload an image first.</p>
 {% endif %}
 </main>
 
-<footer>
-    <a href="{{ url_for('detect') }}" class="btn">🔄 Detect Again</a>
-    <a href="{{ url_for('home') }}" class="btn">🏠 Home</a>
-</footer>
-
 <script>
 function fetchMoreInfo(pestName, button) {
-
     const box = button.nextElementSibling;
-
-    // If already loaded once, just show it again
     if (box.getAttribute("data-loaded") === "true") {
-        button.style.display = "none";
         box.style.display = "block";
+        button.style.display = "none";
         return;
     }
+
+    button.innerText = "⌛ Analyzing...";
 
     fetch("/more_info", {
         method: "POST",
@@ -128,42 +134,36 @@ function fetchMoreInfo(pestName, button) {
     .then(res => res.json())
     .then(data => {
         if (data.info) {
-
             let formatted = data.info
+                .replace(/### (.*?)\n/g, '<h5 style="margin-top:15px; color:#2e7d32; border-bottom:1px solid #c8e6c9; font-size:1.1rem; padding-bottom:5px;">$1</h5>')
                 .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                .replace(/\n\d+\.\s/g, "<br>• ")
-                .replace(/\n\* /g, "<br>&nbsp;&nbsp;&nbsp;• ");
+                .replace(/\n\* /g, "<br>• ")
+                .replace(/\n\n/g, "<br>");
 
             box.innerHTML = `
-                <button onclick="closeInfo(this)"
-                        style="position:absolute; top:5px; right:5px;
-                               background:none; border:none; font-size:18px;
-                               cursor:pointer;">❌</button>
-                <h3> <strong> More Information </>strong> </h3>
-                <div class="info-content">${formatted}</div>
+                <div class="info-inner">
+                    <button class="close-btn" onclick="closeInfo(this)" style="float:right; cursor:pointer; background:none; border:none; font-size:1.2rem;">✕</button>
+                    <div class="info-content" style="clear:both;">${formatted}</div>
+                </div>
             `;
-
             box.style.display = "block";
             button.style.display = "none";
-
             box.setAttribute("data-loaded", "true");
         }
-        else {
-            alert(data.error || "Could not fetch info");
-        }
     })
-    .catch(err => alert("Failed to fetch info: " + err));
+    .catch(err => {
+        button.innerText = "Get Technical Dossier";
+        alert("Failed to fetch info: " + err);
+    });
 }
 
-function closeInfo(closeBtn) {
-    const box = closeBtn.parentElement;
-    const button = box.parentElement.querySelector(".btn-more");
-
+function closeInfo(btn) {
+    const box = btn.closest('.more-info-box');
+    const button = box.previousElementSibling;
     box.style.display = "none";
-    button.style.display = "inline-block";
+    button.style.display = "block";
+    button.innerText = "Get Technical Dossier";
 }
 </script>
-
-
 </body>
 </html>

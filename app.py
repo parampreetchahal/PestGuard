@@ -1,10 +1,8 @@
-import os
-from flask import Flask, render_template, request, redirect, url_for, jsonify
-
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
+from flask_mail import Mail, Message
 
 from PIL import Image
 import numpy as np
-
 
 import json
 
@@ -48,8 +46,17 @@ redis = Redis(
 
 app = Flask(__name__)
 
+app.secret_key = 'pestguard_super_secret_key_123'
 
-app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5MB limit
+app.config['MAIL_SERVER'] = config.MAIL_SERVER
+app.config['MAIL_PORT'] = config.MAIL_PORT
+app.config['MAIL_USE_TLS'] = config.MAIL_USE_TLS
+app.config['MAIL_USERNAME'] = config.MAIL_USERNAME
+app.config['MAIL_PASSWORD'] = config.MAIL_PASSWORD
+
+mail = Mail(app)
+
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20MB limit
 
 
 
@@ -57,7 +64,7 @@ app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5MB limit
 model = load_model("./Models/best_pestnet.keras")
 def warmup_model():
     dummy_input = np.zeros((1,300,300,3))
-    model.predict(dummy_input,verbose=0)
+    model.predict(dummy_input,verbose=1)
 
 warmup_model()
 
@@ -380,7 +387,7 @@ def store_low_confidence_image(image_bytes, confidence):
 def predict_image_from_pil(pil_image, image_bytes, threshold=75):
 
     img_array = preprocess_image_from_pil(pil_image)
-    prediction = model.predict(img_array, verbose=0)
+    prediction = model.predict(img_array, verbose=1)
 
     probs = prediction[0]
 
@@ -434,26 +441,44 @@ def getinfo(api_key, detected_pest):
         "Content-Type": "application/json"
     }
     messages = [
-        {"role": "system", "content": "You are a helpful assistant skilled in "
-                                      "fetching practical pest details for farmers."},
-        {"role": "user", "content": f"Give details about this pest: {detected_pest}. Include life cycle, effects, and farmer solutions."
-                                    "Provide only useful info without AI-style filler text."}
+        {
+            "role": "system",
+            "content": (
+                "You are an expert agricultural entomologist. Provide technical data "
+                "structured with clear Markdown headers (###), bold keys, and bullet points. "
+                "Do not include introductory or concluding conversational filler."
+            )
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Create a technical dossier for the pest: {detected_pest}.\n\n"
+                "Use this exact structure:\n"
+                "### 🧬 Scientific Classification\n"
+                "**Scientific Name**: [Name]\n"
+                "**Host Crops**: [List]\n\n"
+                "### 🔄 Life Cycle\n"
+                "* **Egg Stage**: [Details]\n"
+                "* **Larval Stage**: [Details]\n"
+                "* **Pupal/Adult Stages**: [Details]\n\n"
+                "### ⚠️ Agricultural Impact\n"
+                "* **Yield Loss**: [Details]\n"
+                "* **Physical Damage**: [Details]\n\n"
+                "### 🛡️ Management Strategies\n"
+                "* **Cultural Control**: [Actionable steps]\n"
+                "* **Biological Control**: [Predators/solutions]"
+            )
+        }
     ]
     payload = {
         "model": "llama-3.1-8b-instant",
         "messages": messages,
-        "temperature": 0.7
+        "temperature": 0.2 # Lower temperature for more consistent formatting
     }
 
     response = requests.post(url, headers=headers, json=payload)
-
-    if response.status_code != 200:
-        print("❌ API Error:", response.status_code, response.text)
-        response.raise_for_status()
-
     data = response.json()
     return data["choices"][0]["message"]["content"]
-
 
 # Flask Routes
 # -------------------------------
@@ -518,6 +543,55 @@ def more_info():
         return jsonify({"info": info})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/about')
+def about():
+    return render_template("about.html")
+
+
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    if request.method == 'POST':
+        # ADD THIS LINE TO DEBUG:
+        print(f"DEBUG: Form received! Name: {request.form.get('name')}")
+
+        user_name = request.form.get('name')
+        user_email = request.form.get('email')
+        user_subject = request.form.get('subject')
+        user_msg = request.form.get('message')
+
+        try:
+            # EMAIL 1: Notification to YOU
+            msg_to_self = Message(
+                subject=f"New PestGuard Inquiry: {user_subject}",
+                sender=app.config['MAIL_USERNAME'],
+                recipients=['parampreets537@gmail.com'],
+                body=f"Hello Parampreet,\n\nYou have a new message from {user_name} ({user_email}):\n\n{user_msg}"
+            )
+            mail.send(msg_to_self)
+
+            # EMAIL 2: Automatic Reply to the USER
+            msg_to_user = Message(
+                subject="We've received your message! - PestGuard AI",
+                sender=app.config['MAIL_USERNAME'],
+                recipients=[user_email],
+                body=f"Hi {user_name},\n\nThank you for reaching out to PestGuard AI. "
+                     f"We have received your inquiry regarding '{user_subject}' and our team "
+                     f"will get back to you within 24-48 hours.\n\n"
+                     f"In the meantime, feel free to explore our latest pest detection features.\n\n"
+                     f"Best regards,\nThe PestGuard Team"
+            )
+            mail.send(msg_to_user)
+
+            flash("Message sent! Check your inbox for a confirmation. 🚀", "success")
+        except Exception as e:
+            print(f"Mail Error: {e}")
+            flash("System busy. Please try again later.", "error")
+
+        return redirect(url_for('contact'))
+
+    return render_template("contact.html")
 
 # Run the Flask App
 # -------------------------------

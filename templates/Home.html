@@ -2,46 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PestGuard - Smart Pest Detection</title>
-
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <link rel="stylesheet"
-        href="{{ url_for('static', filename='style/myhome.css') }}">
+  <title>PestGuard - Smart Pest Detection</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style/myhome.css') }}">
 </head>
 <body>
 
 <header>
   <nav>
+    <div class="logo">Pest<span>Guard</span></div>
     <ul>
-      <li><a href="{{ url_for('home') }}">🏠 Home</a></li>
-      <li><a href="#about">ℹ️ About</a></li>
-     <!-- <li><a href="#solutions">🛠️ Solutions</a></li> -->
-      <li><a href="{{ url_for('detect') }}">🔍 Detect</a></li>
-      <li><a href="#contact">📩 Contact</a></li>
+      <li><a href="{{ url_for('about') }}">About</a></li>
+      <li><a href="{{ url_for('detect') }}">Detect</a></li>
+      <li><a href="{{ url_for('contact') }}">Contact</a></li>
     </ul>
   </nav>
 </header>
 
 <main>
-  <h1>PestGuard - Smart Pest Detection</h1>
+  <section class="hero">
+    <div class="hero-content">
+      <!-- <div class="badge">AI-Powered Agriculture</div> -->
+      <h1>Protect Your Crops with <span>Intelligent Vision</span></h1>
+      <p>
+        Identify harmful pests in seconds using high-accuracy deep learning.
+        Get instant chemical and organic solutions tailored for sustainable farming.
+      </p>
 
-  <p>
-    <b>PestGuard</b> is an intelligent pest detection platform designed to help farmers
-    and agricultural experts identify harmful pests using AI-driven image analysis.
-    It provides practical, farmer-friendly solutions to prevent crop damage and
-    improve yield sustainability.
-  </p>
+      <div class="cta-group">
+        <a href="{{ url_for('detect') }}" class="btn-primary">🔍 Start Detection</a>
+        <a href="{{ url_for('about') }}" class="btn-secondary">Learn More</a>
+      </div>
+    </div>
+  </section>
 
-  <h2>Upload an image to begin pest detection</h2>
-
-  <form action="{{ url_for('detect') }}" method="get">
-    <input type="submit" value="🔍 Detect">
-  </form>
+  <section class="features-preview">
+    <div class="feature-mini-card">
+      <span class="icon">⚡</span>
+      <h4>Real-time</h4>
+      <p>Instant AI Analysis</p>
+    </div>
+    <div class="feature-mini-card">
+      <span class="icon">🌿</span>
+      <h4>Eco-Friendly</h4>
+      <p>Organic Solutions</p>
+    </div>
+    <div class="feature-mini-card">
+      <span class="icon">📍</span>
+      <h4>Local</h4>
+      <p>Store Locator</p>
+    </div>
+  </section>
 </main>
 
 <footer>
-  © 2025 PestGuard | Smarter Farming, Safer Crops
+  <p>© 2025 PestGuard | Smarter Farming, Safer Crops</p>
 </footer>
 
 </body>

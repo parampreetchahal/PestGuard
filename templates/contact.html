@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us | PestGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/contact.css') }}">
+</head>
+
+<body> <header class="main-header">
+    <nav class="header-content">
+        <div class="logo">Pest<span>Guard</span></div>
+        <div class="header-actions">
+            <a href="{{ url_for('home') }}" class="btn-outline">🏠 Home</a>
+            <a href="{{ url_for('detect') }}" class="btn-outline">🌱 New Scan</a>
+        </div>
+    </nav>
+</header>
+
+<main class="contact-container">
+
+    <section class="contact-hero">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash-alert" style="padding: 15px; margin-bottom: 20px; border-radius: 10px; background: rgba(76, 175, 80, 0.2); color: white; text-align: center; border: 1px solid #4CAF50;">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <h1>Let's Protect Your <span>Crops</span></h1>
+        <p>Expert support for sustainable pest management and agricultural intelligence.</p>
+    </section>
+
+    <div class="contact-grid">
+        <div class="info-sidebar">
+            <div class="contact-card">
+                <div class="card-icon">📍</div>
+                <h3>Visit Us</h3>
+                <p>Agricultural Tech Park, Suite 402<br>Ludhiana, Punjab, India</p>
+            </div>
+
+            <div class="contact-card">
+                <div class="card-icon">📞</div>
+                <h3>Call Support</h3>
+                <p>Toll Free: 1800-6200-4500<br>Mon - Fri: 9:00 AM - 6:00 PM</p>
+            </div>
+
+            <div class="contact-card">
+                <div class="card-icon">✉️</div>
+                <h3>Email Us</h3>
+                <p>support@pestguard.ai<br>research@pestguard.ai</p>
+            </div>
+        </div>
+
+        <div class="form-wrapper">
+            <form action="{{ url_for('contact') }}" method="POST" class="premium-form">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Full Name</label>
+                        <input type="text" name="name" placeholder="e.g. Rahul Sharma" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" placeholder="rahul@example.com" required>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Subject</label>
+                    <select name="subject" required>
+                        <option value="" disabled selected>Select a topic</option>
+                        <option value="Pest Detection Support">Pest Detection Support</option>
+                        <option value="Organic Treatment Inquiry">Organic Treatment Inquiry</option>
+                        <option value="Partnership / Business">Partnership / Business</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <br>
+                <div class="input-group">
+                    <label>Your Message</label>
+                    <textarea name="message" rows="5" placeholder="How can we help your farm today?" required></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    Send Message
+                </button>
+            </form>
+        </div>
+    </div>
+</main>
+
+<footer class="simple-footer">
+    © 2025 PestGuard AI Intelligence. Empowering Farmers Worldwide.
+</footer>
+
+</body>
+</html>

@@ -1,70 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PestGuard - Detect Pests</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detect Pests | PestGuard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style/detect.css') }}">
 </head>
-
 
 <body>
   <header>
     <nav>
+      <div class="logo">Pest<span>Guard</span></div>
       <ul>
-        <li><a href="{{ url_for('home') }}">🏠 Home</a></li>
-        <li><a href="#about">ℹ️ About</a></li>
-       <!-- <li><a href="#">🛠️ Solutions</a></li> -->
-        <li><a href="#">📩 Contact</a></li>
+        <li><a href="{{ url_for('home') }}">Home</a></li>
+        <li><a href="{{ url_for('about') }}">About</a></li>
+        <li><a href="{{ url_for('contact') }}">Contact</a></li>
       </ul>
     </nav>
   </header>
 
-
-
   <main>
-    <h1>🌾 PestGuard - Upload Images for Detection</h1>
-    <p>
-      Upload one or more crop images, and let <b>PestGuard</b> analyze them.
-      <br>
-      Our AI-powered system detects harmful pests and provides <b>practical solutions</b> 
-      to minimize crop loss and ensure sustainable farming.
-    </p>
+    <div class="content-wrapper">
+      <section class="hero-text">
+        <h1>🌾 Pest Detection</h1>
+        <p>Analyze crop images instantly with our AI model for sustainable pest management.</p>
+      </section>
 
-    <form action="{{ url_for('detect') }}" method="POST" enctype="multipart/form-data">
-      <div class="upload-box">
-        <label for="images">📸<b> Choose Pest Images:</b> </label>
-        <input type="file" id="images" name="images" accept="image/*" multiple required>
-        <br>
-        <br>
-        <label for="shoplocation">📍<b>Enter Your City</b> </label>
-        <input type="text" id="shoplocation" name="shoplocation" placeholder="Enter nearby city">
+      <div class="detection-container">
+        <form class="glass-panel" action="{{ url_for('detect') }}" method="POST" enctype="multipart/form-data">
+          <div class="upload-area">
+            <div class="icon-circle">📸</div>
+            <h3>Upload Images</h3>
+            <p>Select one or more images of the affected crop</p>
 
+            <input type="file" id="images" name="images" accept="image/*" multiple>
+            <label for="images" class="custom-file-upload">Choose Files</label>
+            <div id="file-count">No files selected</div>
+          </div>
+
+          <div class="location-group">
+            <label for="shoplocation">📍 Nearby Pesticide Search</label>
+            <input type="text" id="shoplocation" name="shoplocation" placeholder="Enter your city (e.g. Ludhiana)">
+          </div>
+
+          <button type="submit" class="detect-btn">
+            <span class="btn-icon">🚜</span> Start Analysis
+          </button>
+
+          <div id="loader" class="loader"></div>
+        </form>
+
+        <section class="info-sidebar">
+          <div class="glass-panel">
+            <h3>Why Detection Matters</h3>
+            <div class="info-item">
+              <span class="check">✔</span>
+              <p><strong>Prevent Loss:</strong> Early identification saves up to 40% of crop yield.</p>
+            </div>
+            <div class="info-item">
+              <span class="check">✔</span>
+              <p><strong>Targeted Action:</strong> Use specific treatments instead of broad pesticides.</p>
+            </div>
+            <div class="info-item">
+              <span class="check">✔</span>
+              <p><strong>Eco-Friendly:</strong> Get organic alternative suggestions.</p>
+            </div>
+          </div>
+        </section>
       </div>
-      <button type="submit">🚜 Detect</button>
-      <div id="loader" class="loader"></div>
-    </form>
-
-    <section class="info">
-      <h2>🧑‍🌾 Why Pest Detection?</h2>
-      <ul>
-        <li>✔️ Early detection helps save crops from major losses.</li>
-        <li>✔️ Identifies specific pests for targeted solutions.</li>
-        <li>✔️ Reduces overuse of pesticides by suggesting alternatives.</li>
-        <li>✔️ Promotes sustainable and eco-friendly farming.</li>
-      </ul>
-    </section>
+    </div>
   </main>
 
   <footer>
     © 2025 PestGuard | AI for Sustainable Farming
   </footer>
 
+
   <script>
     const form = document.querySelector("form");
     const loader = document.getElementById("loader");
+    const fileInput = document.getElementById("images");
+    const fileCount = document.getElementById("file-count");
+    const locationInput = document.getElementById("shoplocation");
+    const detectBtn = document.querySelector(".detect-btn");
 
-    form.addEventListener("submit", () => {
-      loader.style.display = "block";  // show animation
+    // Update file count text display
+    fileInput.addEventListener("change", () => {
+      const count = fileInput.files.length;
+      fileCount.textContent = count > 0 ? `${count} file(s) selected` : "No files selected";
+      fileCount.style.color = count > 0 ? "#2e7d32" : "#666";
+    });
+
+    // Handle Form Submission
+    form.addEventListener("submit", function(e) {
+      // 1. Check if files are selected (This will now trigger since 'required' is removed)
+      if (fileInput.files.length === 0) {
+        e.preventDefault();
+        alert("⚠️ Please select at least one image before starting the analysis.");
+        return false;
+      }
+
+
+      // 3. Success: Show loader and change button state
+      loader.style.display = "block";
+      detectBtn.style.opacity = "0.7";
+      detectBtn.style.pointerEvents = "none"; // Prevent double clicking
+      detectBtn.innerHTML = '<span class="btn-icon">⌛</span> Analyzing...';
     });
   </script>
 </body>
