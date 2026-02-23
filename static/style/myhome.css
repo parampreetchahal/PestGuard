@@ -177,6 +177,26 @@ footer {
 }
 
 @media (max-width: 768px) {
-  .cta-group { flex-direction: column; width: 100%; }
-  .feature-mini-card { width: 45%; }
+
+  /* Stack nav vertically */
+  nav {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Center logo */
+  .logo {
+    text-align: center;
+  }
+
+  /* Keep menu horizontal but center it */
+  nav ul {
+    flex-direction: row;
+    justify-content: center;
+    width: 100%;
+    gap: 20px;
+    padding: 0;
+  }
+
 }
