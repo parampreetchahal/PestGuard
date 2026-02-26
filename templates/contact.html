@@ -96,5 +96,25 @@
     © 2025 PestGuard AI Intelligence. Empowering Farmers Worldwide.
 </footer>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const contactForm = document.querySelector('.premium-form');
+        const submitBtn = document.querySelector('.btn-submit');
+
+        if (contactForm) {
+            contactForm.addEventListener('submit', function() {
+                // 1. Change the text
+                submitBtn.innerHTML = 'Sending mail...';
+                
+                // 2. Add the loading class (for the fade effect)
+                submitBtn.classList.add('is-loading');
+                
+                // 3. Disable the button to prevent multiple clicks
+                submitBtn.disabled = true;
+            });
+        }
+    });
+</script>
+
 </body>
 </html>
