@@ -254,7 +254,7 @@ footer {
 
 /* Responsiveness */
 @media (max-width: 768px) {
-    nav { flex-direction: column; gap: 15px; }
+    nav { flex-direction: column; gap: 10px; }
     .glass-card { padding: 25px; }
     .features-grid { grid-template-columns: 1fr; }
     .social-links { flex-wrap: wrap; }

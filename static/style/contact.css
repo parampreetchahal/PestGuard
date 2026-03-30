@@ -32,39 +32,32 @@ body {
 }
 
 /* --- Navigation --- */
-.main-header {
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(15px);
-    padding: 1rem 5%;
-    border-bottom: 1px solid var(--glass-border);
+header {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  padding: 1.2rem 5%;
+  position: relative;
+  width: 100%;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-.header-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.logo { font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px; }
-.logo span { color: var(--primary); }
+.logo { font-size: 1.5rem; font-weight: 800; }
+.logo span { color: var(--dark-green); margin-right: 5px;}
 
-.btn-outline {
-    text-decoration: none;
-    color: var(--text-light);
-    border: 1.5px solid var(--primary);
-    padding: 8px 18px;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: 0.3s ease;
-}
+nav ul { display: flex; list-style: none; gap: 20px; }
+nav a { color: #fff; text-decoration: none; font-weight: 500; transition: 0.3s; }
+nav a:hover, nav a.active { color: var(--primary); }
 
-.btn-outline:hover {
-    background: var(--primary);
-    box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
-}
 
 /* --- Container --- */
 .contact-container {
@@ -219,14 +212,32 @@ select option {
     }
 }
 
+/* Loading state for the submit button */
+.btn-submit.is-loading {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: scale(0.98);
+    filter: grayscale(0.3);
+}
+
+/* Mobile View Fixes */
 /* Mobile View Fixes */
 @media (max-width: 768px) {
+    header {
+        position: relative; /* Change from fixed to relative for mobile */
+    }
+
+    .contact-container {
+        margin-top: 20px; /* Reset margin since header is no longer floating */
+    }
+
     .info-sidebar {
-        grid-template-columns: 1fr; /* Sidebar cards stack again */
+        grid-template-columns: 1fr; 
     }
 
     .form-row {
-        grid-template-columns: 1fr; /* Name and Email stack vertically */
+        grid-template-columns: 1fr; 
         gap: 0;
     }
 
@@ -234,9 +245,15 @@ select option {
         padding: 25px;
     }
 
-    .header-content {
+    nav {
         flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    nav ul {
         gap: 15px;
+        padding: 0;
     }
 }
 

@@ -7,14 +7,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style/contact.css') }}">
 </head>
 
-<body> <header class="main-header">
-    <nav class="header-content">
-        <div class="logo">Pest<span>Guard</span></div>
-        <div class="header-actions">
-            <a href="{{ url_for('home') }}" class="btn-outline">Home</a>
-            <a href="{{ url_for('detect') }}" class="btn-outline">Detect</a>
-        </div>
-    </nav>
+<body> 
+<header>
+  <nav>
+    <div class="logo">Pest<span>Guard</span></div>
+    <ul>
+      <li><a href="{{ url_for('home') }}">Home</a></li>
+      <li><a href="{{ url_for('about') }}">About</a></li>
+      <li><a href="{{ url_for('detect') }}">Detect</a></li>
+      
+    </ul>
+  </nav>
 </header>
 
 <main class="contact-container">
@@ -102,15 +105,16 @@
         const submitBtn = document.querySelector('.btn-submit');
 
         if (contactForm) {
-            contactForm.addEventListener('submit', function() {
-                // 1. Change the text
-                submitBtn.innerHTML = 'Sending mail...';
-                
-                // 2. Add the loading class (for the fade effect)
+            contactForm.addEventListener('submit', function(e) {
+                // Prevent double submission
+                if (submitBtn.classList.contains('is-loading')) return;
+
+                // 1. Change the text & Add loading state
+                submitBtn.innerHTML = '<span>⏳</span> Sending mail...';
                 submitBtn.classList.add('is-loading');
                 
-                // 3. Disable the button to prevent multiple clicks
-                submitBtn.disabled = true;
+                // Note: The form will naturally submit to your Flask route 
+                // and the page will refresh, resetting the button automatically.
             });
         }
     });

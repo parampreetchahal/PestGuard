@@ -42,11 +42,9 @@ redis = Redis(
     token=config.UPSTASH_REDIS_REST_TOKEN
 )
 
-
-
 app = Flask(__name__)
 
-app.secret_key = 'pestguard_super_secret_key_123'
+app.config['SECRET_KEY']=config.SECRET_KEY
 
 app.config['MAIL_SERVER'] = config.MAIL_SERVER
 app.config['MAIL_PORT'] = config.MAIL_PORT
@@ -67,6 +65,7 @@ def warmup_model():
     model.predict(dummy_input,verbose=1)
 
 warmup_model()
+
 
 # Load class indices from training
 with open("class_names.json", "r") as f:
@@ -347,7 +346,7 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
         "maps_url": f"https://www.google.com/maps/search/pesticide+shop+near+{city_name}"
     }]
 
-# -------------------------------
+
 # Preprocess image
 def preprocess_image_from_pil(pil_image):
     img = pil_image.convert("RGB").resize((300, 300))
@@ -384,7 +383,7 @@ def store_low_confidence_image(image_bytes, confidence):
     except Exception as e:
         print("❌ Failed to store low-confidence image:", e)
 
-def predict_image_from_pil(pil_image, image_bytes, threshold=75):
+def predict_image_from_pil(pil_image, image_bytes, threshold=78):
 
     img_array = preprocess_image_from_pil(pil_image)
     prediction = model.predict(img_array, verbose=1)
@@ -432,7 +431,7 @@ def predict_image_from_pil(pil_image, image_bytes, threshold=75):
         "pesticide_solution": pest_info.get("pesticide_solution", "Unknown"),
         "stores": []
     }
-# -------------------------------
+
 # AI Info Fetch Function
 def getinfo(api_key, detected_pest):
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -481,7 +480,6 @@ def getinfo(api_key, detected_pest):
     return data["choices"][0]["message"]["content"]
 
 # Flask Routes
-# -------------------------------
 @app.route('/')
 def home():
     return render_template("home.html")
@@ -594,6 +592,5 @@ def contact():
     return render_template("contact.html")
 
 # Run the Flask App
-# -------------------------------
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)

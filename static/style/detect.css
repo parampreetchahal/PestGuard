@@ -223,7 +223,22 @@ footer {
   color: #888;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
+   header {
+        position: relative; /* Change from fixed to relative for mobile */
+        padding: 1.5rem 5%;
+    }
+
+  nav {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    nav ul {
+        gap: 15px;
+        padding: 0;
+    }
   .detection-container { grid-template-columns: 1fr; }
   .hero-text h1 { font-size: 2rem; }
 }

@@ -60,3 +60,10 @@ logs/
 *.h5
 *.hdf5
 *.npy
+
+real-test-images/
+Notebooks/
+Database Backup/
+Models/
+
+test.py
