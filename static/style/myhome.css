@@ -14,7 +14,7 @@
 }
 
 body {
-  background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../style/home.png");
+  background: #000;
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -22,6 +22,20 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.bg-img {
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  z-index: -1;
+  filter: brightness(0.4); /* same dark effect */
 }
 
 /* Navbar Refinement */
@@ -47,7 +61,7 @@ nav {
 .logo { font-size: 1.5rem; font-weight: 800; }
 .logo span { color: var(--primary-green); margin-right: 5px;}
 
-nav ul { display: flex; list-style: none; gap: 20px; }
+nav ul { display: flex; align-items: center; list-style: none; gap: 20px; }
 nav a { color: #fff; text-decoration: none; font-weight: 500; transition: 0.3s; }
 nav a:hover, nav a.active { color: var(--primary-green); }
 
@@ -200,3 +214,176 @@ footer {
   }
 
 }
+/* 🌍 Language Dropdown - Premium Style */
+nav select {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+
+  padding: 6px 12px;
+  border-radius: 20px;
+
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  cursor: pointer;
+  outline: none;
+
+  transition: all 0.3s ease;
+}
+
+/* Hover effect */
+nav select:hover {
+  border-color: var(--primary-green);
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+/* Focus effect */
+nav select:focus {
+  border-color: var(--primary-green);
+}
+
+/* Dropdown options (limited styling support) */
+nav select option {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+
+.lang-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    display: none; /* ONLY control */
+
+    justify-content: center;
+    align-items: center;
+
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+
+    z-index: 2000;
+}
+
+
+/* 🌟 Modal Card */
+.lang-box {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(15px);
+
+    border: 1px solid rgba(255,255,255,0.2);
+
+    padding: 30px 25px;
+    border-radius: 18px;
+
+    text-align: center;
+    width: 90%;
+    max-width: 320px;
+
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+
+    animation: popupFade 0.4s ease;
+}
+
+/* 📝 Title */
+.lang-box h2 {
+    color: #fff;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+/* 🌐 Buttons */
+.lang-box button {
+    width: 100%;
+    margin: 8px 0;
+
+    padding: 12px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+
+    font-size: 0.95rem;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: all 0.3s ease;
+}
+
+/* Hover */
+.lang-box button:hover {
+    background: var(--primary-green);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+/* ✨ Animation */
+@keyframes popupFade {
+    from {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.lang-switch {
+  position: relative;
+  z-index: 1001;
+}
+
+.lang-switch button {
+  display: flex;
+  align-items: center;
+
+  background: transparent; /* 🔥 REMOVE BOX LOOK */
+  border: 1px solid rgba(255,255,255,0.2);
+
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.95rem;
+
+  padding: 6px 14px;
+  border-radius: 20px;
+
+  cursor: pointer;
+
+  transition: all 0.3s ease;
+}
+
+.lang-switch button:hover {
+  color: var(--primary-green);
+  border-color: var(--primary-green);
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.lang-menu {
+  position: absolute;
+  top: 35px;
+  right: 0;
+  background: rgba(0,0,0,0.8);
+  border-radius: 10px;
+  display: none;
+  overflow: hidden;
+  cursor: pointer;
+
+}
+
+.lang-menu div {
+  padding: 10px 15px;
+  cursor: pointer;
+}
+
+.lang-menu div:hover {
+  background: var(--primary-green);
+}
+
