@@ -231,7 +231,7 @@ body {
 }
 
 /* --- RESPONSIVE FIXES --- */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .report-grid {
     grid-template-columns: 1fr;
   }

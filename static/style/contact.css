@@ -22,7 +22,7 @@
 }
 
 body {
-    background: linear-gradient(rgba(0,10,20,0.85), rgba(0,10,20,0.85)), url("../style/test2.png");
+    background: linear-gradient(rgba(0,10,20,0.85), rgba(0,10,20,0.85)), url("../style/test2.webp");
     background-size: cover;
     background-attachment: fixed;
     min-height: 100vh;
@@ -37,10 +37,9 @@ header {
   backdrop-filter: blur(10px);
   padding: 1.2rem 5%;
   position: relative;
-  width: 100%;
   top: 0;
   z-index: 1000;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
 }
 
 nav {
@@ -51,10 +50,10 @@ nav {
   margin: 0 auto;
 }
 
-.logo { font-size: 1.5rem; font-weight: 800; }
+.logo { font-size: 1.5rem; font-weight: 800; letter-spacing: 1px; }
 .logo span { color: var(--dark-green); margin-right: 5px;}
 
-nav ul { display: flex; list-style: none; gap: 20px; }
+nav ul { display: flex; list-style: none; gap: 25px; }
 nav a { color: #fff; text-decoration: none; font-weight: 500; transition: 0.3s; }
 nav a:hover, nav a.active { color: var(--primary); }
 
@@ -289,4 +288,122 @@ select option {
 @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
+}
+
+/* 🌍 LANGUAGE MODAL */
+.lang-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    display: none;
+    justify-content: center;
+    align-items: center;
+
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+
+    z-index: 2000;
+}
+
+.lang-box {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(15px);
+
+    border: 1px solid rgba(255,255,255,0.2);
+
+    padding: 30px 25px;
+    border-radius: 18px;
+
+    text-align: center;
+    width: 90%;
+    max-width: 320px;
+
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+
+    animation: popupFade 0.4s ease;
+}
+
+.lang-box h2 {
+    color: #fff;
+    margin-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+.lang-box button {
+    width: 100%;
+    margin: 8px 0;
+    padding: 12px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+
+    font-size: 0.95rem;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: all 0.3s ease;
+}
+
+/* Hover */
+.lang-box button:hover {
+    background: var(--primary-green);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.lang-switch {
+    position: relative;
+    z-index: 1001;
+}
+
+.lang-switch button {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-weight: 500;
+    font-size: 0.95rem;
+
+    padding: 6px 14px;
+    border-radius: 20px;
+
+    cursor: pointer;
+}
+
+.lang-switch button:hover {
+    color: var(--primary-green);
+    border-color: var(--primary-green);
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.lang-menu {
+    position: absolute;
+    top: 35px;
+    right: 0;
+
+    background: rgba(0,0,0,0.85);
+    border-radius: 10px;
+
+    display: none;
+    overflow: hidden;
+    cursor: pointer;
+
+    z-index: 2000; /* 🔥 VERY IMPORTANT */
+}
+
+.lang-menu div {
+    padding: 10px 15px;
+    cursor: pointer;
+}
+
+.lang-menu div:hover {
+    background: var(--primary-green);
 }

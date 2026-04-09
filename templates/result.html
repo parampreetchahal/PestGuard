@@ -1,19 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="htmlTag">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Results | PestGuard</title>
+
+    <title data-i18n="result_page_title">Results | PestGuard</title>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style/result.css') }}">
 </head>
 <body>
 
 <header class="main-header">
     <div class="header-content">
-        <h1>🌱 Analysis <span>Report</span></h1>
+        <h1>
+            🌱 <span data-i18n="analysis">Analysis</span>
+            <span data-i18n="report">Report</span>
+        </h1>
+
         <div class="header-actions">
-            <a href="{{ url_for('detect') }}" class="btn-outline">🔄 New Scan</a>
-            <a href="{{ url_for('home') }}" class="btn-outline">🏠 Home</a>
+            <a href="{{ url_for('detect') }}" class="btn-outline" data-i18n="new_scan">🔄 New Scan</a>
+            <a href="{{ url_for('home') }}" class="btn-outline" data-i18n="home">🏠 Home</a>
         </div>
     </div>
 </header>
@@ -23,75 +29,105 @@
     {% for res in results %}
     <div class="report-grid">
 
+        <!-- LEFT -->
         <div class="glass-card left-column">
+
             <div class="card-header">
                 <span class="status-badge {% if res.pest == 'No pest found' %}neutral{% else %}warning{% endif %}">
-                    {{ "Scan Result" if res.pest != "No pest found" else "Inconclusive" }}
+                    {% if res.pest != "No pest found" %}
+                        <span data-i18n="scan_result">Scan Result</span>
+                    {% else %}
+                        <span data-i18n="inconclusive">Inconclusive</span>
+                    {% endif %}
                 </span>
-                <h2>Detection Summary</h2>
+
+                <h2 data-i18n="detection_summary">Detection Summary</h2>
             </div>
 
             <div class="image-preview">
                 <img src="data:image/jpeg;base64,{{ res.image_data }}" alt="Scan" class="scan-img">
-                <div class="confidence-tag">{{ res.confidence }}% Confidence</div>
+
+                <div class="confidence-tag">
+                    {{ res.confidence }}% <span data-i18n="confidence">Confidence</span>
+                </div>
             </div>
 
             <div class="pest-info-header">
                 <h3 class="pest-name">{{ res.pest }}</h3>
 
-                {# ONLY SHOW IMPACT IF PEST FOUND #}
                 {% if res.pest != "No pest found" %}
                 <div class="impact-statement">
-                    <strong>Impact:</strong> {{ res.effects or "Significant risk to foliage and yield." }}
+                    <strong data-i18n="impact">Impact:</strong>
+                    {{ res.effects or "Significant risk to foliage and yield." }}
                 </div>
                 {% else %}
-                <p class="small-text">Our model could not identify a specific pest in this image. Please ensure the pest is clearly visible and try scanning again.</p>
+                <p class="small-text" data-i18n="no_pest_msg">
+                    Our model could not identify a specific pest. Please try again with a clearer image.
+                </p>
                 {% endif %}
             </div>
 
-            {# ONLY SHOW TREATMENT IF PEST FOUND #}
             {% if res.pest != "No pest found" %}
             <hr class="divider">
+
             <div class="treatment-section">
-                <h3>Recommended Treatment</h3>
+                <h3 data-i18n="recommended_treatment">Recommended Treatment</h3>
+
                 <div class="treatment-stack">
+
                     <div class="treatment-box natural">
                         <div class="box-icon">🍃</div>
                         <div class="box-text">
-                            <h4>Organic / Cultural</h4>
+                            <h4 data-i18n="organic">Organic / Cultural</h4>
                             <p>{{ res.natural_solution or "No organic data available." }}</p>
                         </div>
                     </div>
+
                     <div class="treatment-box chemical">
-                        <div class="box-icon :">🧪</div>
+                        <div class="box-icon">🧪</div>
                         <div class="box-text">
-                            <h4>Chemical / Pesticide</h4>
+                            <h4 data-i18n="chemical">Chemical / Pesticide</h4>
                             <p>{{ res.pesticide_solution or "Consult a specialist." }}</p>
                         </div>
                     </div>
+
                 </div>
             </div>
             {% endif %}
+
         </div>
 
+        <!-- RIGHT -->
         <div class="right-column">
-            {# ONLY SHOW AI DOSSIER IF PEST FOUND #}
+
             {% if res.pest != "No pest found" %}
             <div class="glass-card ai-card">
-                <h2>Pest Intelligence</h2>
-                <p class="small-text">Need deeper technical details about this species?</p>
-                <button class="btn-ai-info" onclick="fetchMoreInfo('{{ res.pest }}', this)">
+
+                <h2 data-i18n="pest_intelligence">Pest Intelligence</h2>
+
+                <p class="small-text" data-i18n="ai_desc">
+                    Need deeper technical details about this species?
+                </p>
+
+                <button class="btn-ai-info" onclick="fetchMoreInfo('{{ res.pest }}', this)" data-i18n="get_dossier">
                     Get Technical Dossier
                 </button>
+
                 <div class="more-info-box" style="display: none;"></div>
             </div>
             {% endif %}
 
             <div class="glass-card stores-card">
+
                 <div class="card-header">
-                    <h2>Nearby Shops</h2>
-                    <span class="count-tag">{{ res.stores | length if res.stores else 0 }} Found</span>
+                    <h2 data-i18n="nearby_shops">Nearby Shops</h2>
+
+                    <span class="count-tag">
+                        {{ res.stores | length if res.stores else 0 }}
+                        <span data-i18n="found">Found</span>
+                    </span>
                 </div>
+
                 <div class="store-scroller">
                     {% if res.stores %}
                         {% for store in res.stores %}
@@ -104,10 +140,14 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <p class="empty-state">No stores found within 15km.</p>
+                        <p class="empty-state" data-i18n="no_stores">
+                            No stores found within 15km.
+                        </p>
                     {% endif %}
                 </div>
+
             </div>
+
         </div>
 
     </div>
@@ -115,45 +155,59 @@
 {% endif %}
 </main>
 
+<!-- JS -->
+<script src="{{ url_for('static', filename='js/translations.js') }}"></script>
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+
 <script>
+// ✅ Apply stored language ONLY (no modal)
+window.onload = () => {
+    const lang = localStorage.getItem("lang") || "en";
+    applyLanguage(lang);
+};
+
+// 🔥 AI FETCH (unchanged logic, just text updated)
 function fetchMoreInfo(pestName, button) {
     const box = button.nextElementSibling;
+    const lang = localStorage.getItem("lang") || "en";
+
     if (box.getAttribute("data-loaded") === "true") {
         box.style.display = "block";
         button.style.display = "none";
         return;
     }
 
-    button.innerText = "⌛ Analyzing...";
+    button.innerText = translations[lang]["analyzing"];
 
     fetch("/more_info", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ pest: pestName })
+        body: JSON.stringify({ pest: pestName, lang: lang }) // 🔥 pass language
     })
     .then(res => res.json())
     .then(data => {
         if (data.info) {
             let formatted = data.info
-                .replace(/### (.*?)\n/g, '<h5 style="margin-top:15px; color:#2e7d32; border-bottom:1px solid #c8e6c9; font-size:1.1rem; padding-bottom:5px;">$1</h5>')
+                .replace(/### (.*?)\n/g, '<h5>$1</h5>')
                 .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                 .replace(/\n\* /g, "<br>• ")
                 .replace(/\n\n/g, "<br>");
 
             box.innerHTML = `
                 <div class="info-inner">
-                    <button class="close-btn" onclick="closeInfo(this)" style="float:right; cursor:pointer; background:none; border:none; font-size:1.2rem;">✕</button>
-                    <div class="info-content" style="clear:both;">${formatted}</div>
+                    <button class="close-btn" onclick="closeInfo(this)">✕</button>
+                    <div class="info-content">${formatted}</div>
                 </div>
             `;
+
             box.style.display = "block";
             button.style.display = "none";
             box.setAttribute("data-loaded", "true");
         }
     })
     .catch(err => {
-        button.innerText = "Get Technical Dossier";
-        alert("Failed to fetch info: " + err);
+        button.innerText = translations[lang]["get_dossier"];
+        alert("Error");
     });
 }
 
@@ -162,8 +216,31 @@ function closeInfo(btn) {
     const button = box.previousElementSibling;
     box.style.display = "none";
     button.style.display = "block";
-    button.innerText = "Get Technical Dossier";
+
+    const lang = localStorage.getItem("lang") || "en";
+    button.innerText = translations[lang]["get_dossier"];
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    const lang = localStorage.getItem("lang") || "en";
+    applyLanguage(lang);
+
+    // 🔥 Detect navigation type
+    const navType = performance.getEntriesByType("navigation")[0].type;
+
+    // "reload" or "back_forward"
+    if (navType === "back_forward") {
+        window.location.href = "/detect";
+    }
+});
+
+window.addEventListener("pageshow", function (event) {
+    if (event.persisted) {
+        // ❌ Page loaded from cache → redirect
+        window.location.href = "/detect";
+    }
+});
 </script>
+
 </body>
 </html>

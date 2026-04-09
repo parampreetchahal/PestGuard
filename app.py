@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
 from flask_mail import Mail, Message
 
 from PIL import Image
@@ -27,7 +27,7 @@ from upstash_redis import Redis
 import io
 import base64
 
-geo_lock=Lock()
+geo_lock = Lock()
 
 LOW_CONF_BUCKET = "low_confidence_images"
 LOW_CONF_TABLE = "low_confidence_detections"
@@ -44,7 +44,7 @@ redis = Redis(
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY']=config.SECRET_KEY
+app.config['SECRET_KEY'] = config.SECRET_KEY
 
 app.config['MAIL_SERVER'] = config.MAIL_SERVER
 app.config['MAIL_PORT'] = config.MAIL_PORT
@@ -57,15 +57,16 @@ mail = Mail(app)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20MB limit
 
 
-
 # Load trained model once
 model = load_model("./Models/best_pestnet.keras")
+
+
 def warmup_model():
     dummy_input = np.zeros((1,300,300,3))
     model.predict(dummy_input,verbose=1)
 
-warmup_model()
 
+warmup_model()
 
 # Load class indices from training
 with open("class_names.json", "r") as f:
@@ -117,11 +118,11 @@ def get_pest_info(pest_name):
                 # 🔁 map chemical_solution → pesticide_solution (your app expects this key)
                 "pesticide_solution": row.get("chemical_solution", "Unknown")
             }
-            #store in redis
+            # store in redis
+
             redis.set(cache_key,json.dumps(pest_result),ex=86400)
             print("redis set")
             return pest_result
-
 
         return default
 
@@ -132,7 +133,6 @@ def get_pest_info(pest_name):
             "natural_solution": "N/A",
             "pesticide_solution": "N/A"
         }
-
 
 
 def is_valid_city(city_name):
@@ -146,7 +146,7 @@ def is_valid_city(city_name):
         return False
 
     # Reject symbols-only / garbage
-    if re.fullmatch(r"[^a-zA-Z\s\-\.]+", city_name):
+    if re.fullmatch(r"[^a-zA-Z\s\-.]+", city_name):
         return False
 
     # Minimum length
@@ -182,7 +182,7 @@ def get_coordinates(city_name):
     # -------------------------------------------------
     with geo_lock:
         try:
-            #query=f"{city_name}, India"
+            # query=f"{city_name}, India"
             photon_url = f"https://photon.komoot.io/api/?q={city_name}&limit=1"
             r = requests.get(photon_url, timeout=10)
 
@@ -364,24 +364,35 @@ def store_low_confidence_image(image_bytes, confidence):
     try:
         storage_path = f"{datetime.now().strftime('%Y/%m')}/{uuid4()}.jpg"
 
-        # Upload directly from bytes
-        supabase.storage.from_(LOW_CONF_BUCKET).upload(
-            storage_path,
-            image_bytes,
-            {"content-type": "image/jpeg"}
-        )
+        for attempt in range(3):
+            try:
+                res = supabase.storage.from_(LOW_CONF_BUCKET).upload(
+                    storage_path,
+                    image_bytes,
+                    {"content-type": "image/jpeg"}
+                )
+                print("✅ Upload success:", storage_path)
+                break
+            except Exception as e:
+                print("❌ Upload completely failed:", storage_path)
+                return
 
-        # Insert metadata
-        supabase.table(LOW_CONF_TABLE).insert({
+        # INSERT INTO DB ONLY AFTER SUCCESS
+        db_res = supabase.table(LOW_CONF_TABLE).insert({
             "image_path": storage_path,
             "confidence": confidence,
             "predicted_pest": None
         }).execute()
 
-        print("📥 Stored low-confidence image:", storage_path)
+        # CHECK DB RESPONSE
+        if hasattr(db_res, "error") and db_res.error:
+            print("❌ DB insert failed:", db_res.error)
+        else:
+            print("📥 Stored in DB + Storage:", storage_path)
 
     except Exception as e:
         print("❌ Failed to store low-confidence image:", e)
+
 
 def predict_image_from_pil(pil_image, image_bytes, threshold=78):
 
@@ -398,7 +409,6 @@ def predict_image_from_pil(pil_image, image_bytes, threshold=78):
 
     top2 = np.sort(probs)[-2:]
     top2_gap = top2[1] - top2[0]
-
     MIN_CONFIDENCE = 60
     MAX_ENTROPY = 1.5
     MIN_TOP2_GAP = 0.15
@@ -433,6 +443,8 @@ def predict_image_from_pil(pil_image, image_bytes, threshold=78):
     }
 
 # AI Info Fetch Function
+
+
 def getinfo(api_key, detected_pest):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
@@ -472,7 +484,7 @@ def getinfo(api_key, detected_pest):
     payload = {
         "model": "llama-3.1-8b-instant",
         "messages": messages,
-        "temperature": 0.2 # Lower temperature for more consistent formatting
+        "temperature": 0.2  # Lower temperature for more consistent formatting
     }
 
     response = requests.post(url, headers=headers, json=payload)
@@ -480,6 +492,8 @@ def getinfo(api_key, detected_pest):
     return data["choices"][0]["message"]["content"]
 
 # Flask Routes
+
+
 @app.route('/')
 def home():
     return render_template("home.html")
@@ -516,7 +530,7 @@ def detect():
                 res["stores"] = []
 
             results.append(res)
-
+        session["result_valid"] = True
         return render_template("result.html", results=results)
 
     return render_template("detect.html")
@@ -564,8 +578,8 @@ def contact():
             msg_to_self = Message(
                 subject=f"New PestGuard Inquiry: {user_subject}",
                 sender=app.config['MAIL_USERNAME'],
-                recipients=['parampreets537@gmail.com'],
-                body=f"Hello Parampreet,\n\nYou have a new message from {user_name} ({user_email}):\n\n{user_msg}"
+                recipients=['pestguardteam@gmail.com'],
+                body=f"Hello Team PestGurad,\n\nYou have a new message from {user_name} ({user_email}):\n\n{user_msg}"
             )
             mail.send(msg_to_self)
 
@@ -574,15 +588,15 @@ def contact():
                 subject="We've received your message! - PestGuard AI",
                 sender=app.config['MAIL_USERNAME'],
                 recipients=[user_email],
-                body=f"Hi {user_name},\n\nThank you for reaching out to PestGuard AI. "
-                     f"We have received your inquiry regarding '{user_subject}' and our team "
-                     f"will get back to you within 24-48 hours.\n\n"
-                     f"In the meantime, feel free to explore our latest pest detection features.\n\n"
-                     f"Best regards,\nThe PestGuard Team"
+                body=f"Hi {user_name},\n\nThank you for reaching out to PestGuard AI. " 
+                f"We have received your inquiry regarding '{user_subject}' and our team "
+                f"will get back to you within 24-48 hours.\n\n"
+                f"In the meantime, feel free to explore our latest pest detection features.\n\n"
+                f"Best regards,\nThe PestGuard Team"
             )
             mail.send(msg_to_user)
 
-            flash("Message sent! Check your inbox for a confirmation. 🚀", "success")
+            flash("Message sent! Check your inbox for a confirmation. ", "success")
         except Exception as e:
             print(f"Mail Error: {e}")
             flash("System busy. Please try again later.", "error")
@@ -592,5 +606,7 @@ def contact():
     return render_template("contact.html")
 
 # Run the Flask App
+
+
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)

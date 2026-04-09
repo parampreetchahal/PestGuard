@@ -1,66 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="htmlTag">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About | PestGuard</title>
+    <title data-i18n="about_page_title">About | PestGuard</title>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style/about.css') }}">
+
 </head>
 <body>
+
+<!-- 🌍 LANGUAGE MODAL -->
+<div id="langModal" class="lang-modal">
+    <div class="lang-box">
+        <h2 data-i18n="choose_lang">Choose Language</h2>
+        <button onclick="selectLang('en')">English</button>
+        <button onclick="selectLang('hi')">हिंदी</button>
+    </div>
+</div>
 
 <header>
     <nav>
         <div class="logo">Pest<span>Guard</span></div>
+
         <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/detect">Detect</a></li>
-            <li><a href="/about" class="active">About</a></li>
-            <li><a href="/contact">Contact</a></li>
+            <li><a href="/" data-i18n="home">Home</a></li>
+            <li><a href="/detect" data-i18n="detect">Detect</a></li>
+           <!-- <li><a href="/about" class="active" data-i18n="about">About</a></li> -->
+            <li><a href="/contact" data-i18n="contact">Contact</a></li>
+
+            <!-- 🌐 LANGUAGE SWITCH -->
+            <li class="lang-switch">
+                <button onclick="toggleLangMenu()" data-i18n="lang">LANG</button>
+                <div id="langMenu" class="lang-menu">
+                    <div onclick="selectLang('en')">English</div>
+                    <div onclick="selectLang('hi')">हिंदी</div>
+                </div>
+            </li>
         </ul>
     </nav>
 </header>
 
 <main>
     <div class="container">
+
+        <!-- HERO -->
         <section class="hero-section">
-            <h1>About PestGuard</h1>
-            <p class="subtitle">Empowering agriculture through Intelligent Detection</p>
+            <h1 data-i18n="about_title">About PestGuard</h1>
+            <p class="subtitle" data-i18n="about_subtitle">
+                Empowering agriculture through Intelligent Detection
+            </p>
         </section>
 
+        <!-- MISSION -->
         <section class="about-section">
             <div class="glass-card main-card">
                 <div class="card-content">
-                    <h2> Our Mission</h2>
-                    <p>
-                        PestGuard is an AI-powered pest detection and management system
-                        designed to assist farmers and agricultural experts in identifying harmful pests
-                        with high accuracy using deep learning models.
+                    <h2 data-i18n="mission_title">Our Mission</h2>
+
+                    <p data-i18n="mission_desc">
+                        PestGuard is an AI-powered pest detection system designed to help farmers identify harmful pests with high accuracy.
                     </p>
 
                     <div class="features-grid">
-                        <div class="feature-item"><span>✔</span> Real-time identification</div>
-                        <div class="feature-item"><span>✔</span> Dual solutions (Chem/Org)</div>
-                        <div class="feature-item"><span>✔</span> Store locator</div>
-                        <div class="feature-item"><span>✔</span> Multilingual support</div>
+                        <div class="feature-item">
+                            <span>✔</span> <span data-i18n="feature_rt">Real-time identification</span>
+                        </div>
+
+                        <div class="feature-item">
+                            <span>✔</span> <span data-i18n="feature_dual">Dual solutions (Chem/Org)</span>
+                        </div>
+
+                        <div class="feature-item">
+                            <span>✔</span> <span data-i18n="feature_store">Store locator</span>
+                        </div>
+
+                        <div class="feature-item">
+                            <span>✔</span> <span data-i18n="feature_multi">Multilingual support</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
+        <!-- VISION -->
         <section class="about-section">
             <div class="glass-card">
-                <h2> Our Vision</h2>
-                <p>
-                    We aim to empower farmers with accessible AI technology,
-                    reduce crop losses, and promote sustainable agriculture practices.
-                    PestGuard bridges the gap between advanced machine learning models
-                    and real-world agricultural needs.
+                <h2 data-i18n="vision_title">Our Vision</h2>
+
+                <p data-i18n="vision_desc">
+                    We aim to empower farmers with AI technology, reduce crop losses, and promote sustainable agriculture.
                 </p>
             </div>
         </section>
 
+        <!-- TEAM -->
         <section class="about-section">
-            <h2 class="section-title">Development Team</h2>
+            <h2 class="section-title" data-i18n="team_title">Development Team</h2>
+
             <div class="contributors-grid">
 
                 <div class="contributor-card">
@@ -68,11 +105,9 @@
                     <h3>Parampreet Singh</h3>
                     <hr>
                     <div class="developer-info">
-                        <a href="mailto:parampreets537@gmail.com" class="info-link"> parampreets537@gmail.com</a>
-                        <div class="social-links">
-                            <a href="https://www.linkedin.com/in/parampreet-singh23/" target="_blank">LinkedIn</a>
-                            <a href="https://instagram.com/parampreetchahal" target="_blank">Instagram</a>
-                        </div>
+                        <a href="mailto:parampreets537@gmail.com" class="info-link">
+                            parampreets537@gmail.com
+                        </a>
                     </div>
                 </div>
 
@@ -81,11 +116,9 @@
                     <h3>Jiya Agarwal</h3>
                     <hr>
                     <div class="developer-info">
-                        <a href="mailto:jiyagoyal2004@gmail.com" class="info-link"> jiyagoyal2004@gmail.com</a>
-                        <div class="social-links">
-                            <a href="https://www.linkedin.com/in/jiya-agrawal-8b165024a/" target="_blank">LinkedIn</a>
-                            <a href="https://instagram.com/jiya_goel20" target="_blank">Instagram</a>
-                        </div>
+                        <a href="mailto:jiyagoyal2004@gmail.com" class="info-link">
+                            jiyagoyal2004@gmail.com
+                        </a>
                     </div>
                 </div>
 
@@ -94,22 +127,25 @@
                     <h3>Priyanshu Mittal</h3>
                     <hr>
                     <div class="developer-info">
-                        <a href=" priyanshu1mittal@gmail.com" class="info-link">  priyanshu1mittal@gmail.com</a>
-                        <div class="social-links">
-                            <a href="https://www.linkedin.com/in/priyanshu-mittal-b686181a9/" target="_blank">LinkedIn</a>
-                            <a href="https://instagram.com/_priyanshumittal" target="_blank">Instagram</a>
-                        </div>
+                        <a href="mailto:priyanshu1mittal@gmail.com" class="info-link">
+                            priyanshu1mittal@gmail.com
+                        </a>
                     </div>
                 </div>
 
             </div>
         </section>
+
     </div>
 </main>
 
 <footer>
-    <p>© 2026 PestGuard | AI for Sustainable Agriculture</p>
+    <p data-i18n="footer">© 2026 PestGuard | AI for Sustainable Agriculture</p>
 </footer>
+
+<!-- ✅ IMPORTANT JS -->
+<script src="{{ url_for('static', filename='js/translations.js') }}"></script>
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
 
 </body>
 </html>

@@ -1,112 +1,191 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="htmlTag">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detect Pests | PestGuard</title>
+
+  <title data-i18n="detect_page_title">Detect Pests | PestGuard</title>
+
   <link rel="stylesheet" href="{{ url_for('static', filename='style/detect.css') }}">
+  <link rel="preload" as="image" href="{{ url_for('static', filename='style/test2.webp') }}">
 </head>
 
 <body>
-  <header>
-    <nav>
-      <div class="logo">Pest<span>Guard</span></div>
-      <ul>
-        <li><a href="{{ url_for('home') }}">Home</a></li>
-        <li><a href="{{ url_for('about') }}">About</a></li>
-        <li><a href="{{ url_for('contact') }}">Contact</a></li>
-      </ul>
-    </nav>
-  </header>
+<img src="{{ url_for('static', filename='style/test2.webp') }}"
+     class="bg-img"
+     loading="eager"
+     fetchpriority="high">
 
-  <main>
-    <div class="content-wrapper">
-      <section class="hero-text">
-        <h1>🌾 Pest Detection</h1>
-        <p>Analyze crop images instantly with our AI model for sustainable pest management.</p>
+<!-- 🌍 LANGUAGE MODAL -->
+<div id="langModal" class="lang-modal">
+  <div class="lang-box">
+    <h2 data-i18n="choose_lang">Choose Language</h2>
+    <button onclick="selectLang('en')">English</button>
+    <button onclick="selectLang('hi')">हिंदी</button>
+  </div>
+</div>
+
+<header>
+
+  <nav>
+    <div class="logo">Pest<span>Guard</span></div>
+
+    <ul>
+      <li><a href="{{ url_for('home') }}" data-i18n="home">Home</a></li>
+      <li><a href="{{ url_for('about') }}" data-i18n="about">About</a></li>
+      <li><a href="{{ url_for('contact') }}" data-i18n="contact">Contact</a></li>
+
+      <!-- 🌐 LANG -->
+      <li class="lang-switch">
+        <button onclick="toggleLangMenu()" data-i18n="lang">LANG</button>
+        <div id="langMenu" class="lang-menu">
+          <div onclick="selectLang('en')">English</div>
+          <div onclick="selectLang('hi')">हिंदी</div>
+        </div>
+      </li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+  <div class="content-wrapper">
+
+    <!-- HERO -->
+    <section class="hero-text">
+      <h1 data-i18n="detect_title">🌾 Pest Detection</h1>
+      <p data-i18n="detect_desc">
+        Analyze crop images instantly with our AI model for sustainable pest management.
+      </p>
+    </section>
+
+    <div class="detection-container">
+
+      <!-- FORM -->
+      <form class="glass-panel" action="{{ url_for('detect') }}" method="POST" enctype="multipart/form-data">
+
+        <div class="upload-area">
+          <div class="icon-circle">📸</div>
+
+          <h3 data-i18n="upload_title">Upload Images</h3>
+          <p data-i18n="upload_desc">Select one or more images of the affected crop</p>
+
+          <input type="file" id="images" name="images" accept="image/*" multiple>
+
+          <label for="images" class="custom-file-upload" data-i18n="choose_files">
+            Choose Files
+          </label>
+
+          <div id="file-count" data-i18n="no_files">No files selected</div>
+        </div>
+
+        <!-- LOCATION -->
+        <div class="location-group">
+          <label for="shoplocation" data-i18n="location_label">
+            📍 Nearby Pesticide Search
+          </label>
+
+          <input type="text" id="shoplocation" name="shoplocation"
+                 data-i18n-placeholder="location_placeholder">
+        </div>
+
+        <!-- BUTTON -->
+        <button type="submit" class="detect-btn">
+          <span class="btn-icon">🚜</span>
+          <span data-i18n="start_analysis">Start Analysis</span>
+        </button>
+
+        <div id="loader" class="loader"></div>
+      </form>
+
+      <!-- INFO -->
+      <section class="info-sidebar">
+        <div class="glass-panel">
+
+          <h3 data-i18n="why_detection">Why Detection Matters</h3>
+
+          <div class="info-item">
+            <span class="check">✔</span>
+            <p>
+              <strong data-i18n="prevent_loss">Prevent Loss:</strong>
+              <span data-i18n="prevent_loss_desc">
+                Early identification saves up to 40% of crop yield.
+              </span>
+            </p>
+          </div>
+
+          <div class="info-item">
+            <span class="check">✔</span>
+            <p>
+              <strong data-i18n="target_action">Targeted Action:</strong>
+              <span data-i18n="target_action_desc">
+                Use specific treatments instead of broad pesticides.
+              </span>
+            </p>
+          </div>
+
+          <div class="info-item">
+            <span class="check">✔</span>
+            <p>
+              <strong data-i18n="eco">Eco-Friendly:</strong>
+              <span data-i18n="eco_desc">
+                Get organic alternative suggestions.
+              </span>
+            </p>
+          </div>
+
+        </div>
       </section>
 
-      <div class="detection-container">
-        <form class="glass-panel" action="{{ url_for('detect') }}" method="POST" enctype="multipart/form-data">
-          <div class="upload-area">
-            <div class="icon-circle">📸</div>
-            <h3>Upload Images</h3>
-            <p>Select one or more images of the affected crop</p>
-
-            <input type="file" id="images" name="images" accept="image/*" multiple>
-            <label for="images" class="custom-file-upload">Choose Files</label>
-            <div id="file-count">No files selected</div>
-          </div>
-
-          <div class="location-group">
-            <label for="shoplocation">📍 Nearby Pesticide Search</label>
-            <input type="text" id="shoplocation" name="shoplocation" placeholder="Enter your city (e.g. Ludhiana)">
-          </div>
-
-          <button type="submit" class="detect-btn">
-            <span class="btn-icon">🚜</span> Start Analysis
-          </button>
-
-          <div id="loader" class="loader"></div>
-        </form>
-
-        <section class="info-sidebar">
-          <div class="glass-panel">
-            <h3>Why Detection Matters</h3>
-            <div class="info-item">
-              <span class="check">✔</span>
-              <p><strong>Prevent Loss:</strong> Early identification saves up to 40% of crop yield.</p>
-            </div>
-            <div class="info-item">
-              <span class="check">✔</span>
-              <p><strong>Targeted Action:</strong> Use specific treatments instead of broad pesticides.</p>
-            </div>
-            <div class="info-item">
-              <span class="check">✔</span>
-              <p><strong>Eco-Friendly:</strong> Get organic alternative suggestions.</p>
-            </div>
-          </div>
-        </section>
-      </div>
     </div>
-  </main>
+  </div>
+</main>
 
-  <footer>
-    © 2025 PestGuard | AI for Sustainable Farming
-  </footer>
+<footer data-i18n="detect_footer">
+  © 2025 PestGuard | AI for Sustainable Farming
+</footer>
 
+<!-- JS -->
+<script src="{{ url_for('static', filename='js/translations.js') }}"></script>
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
 
-  <script>
-    const form = document.querySelector("form");
-    const loader = document.getElementById("loader");
-    const fileInput = document.getElementById("images");
-    const fileCount = document.getElementById("file-count");
-    const locationInput = document.getElementById("shoplocation");
-    const detectBtn = document.querySelector(".detect-btn");
+<script>
+const form = document.querySelector("form");
+const loader = document.getElementById("loader");
+const fileInput = document.getElementById("images");
+const fileCount = document.getElementById("file-count");
+const detectBtn = document.querySelector(".detect-btn");
 
-    // Update file count text display
-    fileInput.addEventListener("change", () => {
-      const count = fileInput.files.length;
-      fileCount.textContent = count > 0 ? `${count} file(s) selected` : "No files selected";
-      fileCount.style.color = count > 0 ? "#2e7d32" : "#666";
-    });
+const lang = localStorage.getItem("lang") || "en";
 
-    // Handle Form Submission
-    form.addEventListener("submit", function(e) {
-      // 1. Check if files are selected (This will now trigger since 'required' is removed)
-      if (fileInput.files.length === 0) {
-        e.preventDefault();
-        alert("⚠️ Please select at least one image before starting the analysis.");
-        return false;
-      }
+// 🔥 FILE COUNT TEXT (MULTILINGUAL)
+fileInput.addEventListener("change", () => {
+  const count = fileInput.files.length;
 
+  if (count === 0) {
+    fileCount.textContent = translations[lang]["no_files"];
+  } else {
+    fileCount.textContent = `${count} ${translations[lang]["files_selected"]}`;
+  }
+});
 
-      // 3. Success: Show loader and change button state
-      loader.style.display = "block";
-      detectBtn.style.opacity = "0.7";
-      detectBtn.style.pointerEvents = "none"; // Prevent double clicking
-      detectBtn.innerHTML = '<span class="btn-icon">⌛</span> Analyzing...';
-    });
-  </script>
+// FORM SUBMIT
+form.addEventListener("submit", function(e) {
+  if (fileInput.files.length === 0) {
+    e.preventDefault();
+    alert(translations[lang]["upload_warning"]);
+    return false;
+
+    sessionStorage.setItem("result_valid", "true");
+
+  }
+
+  loader.style.display = "block";
+  detectBtn.style.opacity = "0.7";
+  detectBtn.style.pointerEvents = "none";
+
+  detectBtn.innerHTML = `<span class="btn-icon">⌛</span> ${translations[lang]["analyzing"]}`;
+});
+</script>
+
 </body>
 </html>

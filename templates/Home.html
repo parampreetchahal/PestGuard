@@ -1,20 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="htmlTag">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PestGuard - Smart Pest Detection</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style/myhome.css') }}">
+  <link rel="preload" as="image" href="{{ url_for('static', filename='style/home.webp') }}">
 </head>
 <body>
+
+<img src="{{ url_for('static', filename='style/home.webp') }}"
+     class="bg-img"
+     loading="eager"
+     fetchpriority="high">
+
+<div id="langModal" class="lang-modal">
+    <div class="lang-box">
+        <h2 data-i18n="choose_lang">Choose Language</h2>
+        <button onclick="selectLang('en')">English</button>
+        <button onclick="selectLang('hi')">हिंदी</button>
+    </div>
+</div>
 
 <header>
   <nav>
     <div class="logo">Pest<span>Guard</span></div>
     <ul>
-      <li><a href="{{ url_for('about') }}">About</a></li>
-      <li><a href="{{ url_for('detect') }}">Detect</a></li>
-      <li><a href="{{ url_for('contact') }}">Contact</a></li>
+      <li><a href="{{ url_for('about') }}" data-i18n="about">About</a></li> <!-- 🔁 -->
+      <li><a href="{{ url_for('detect') }}" data-i18n="detect">Detect</a></li> <!-- 🔁 -->
+      <li><a href="{{ url_for('contact') }}" data-i18n="contact">Contact</a></li> <!-- 🔁 -->
+      <li class="lang-switch">
+      <button onclick="toggleLangMenu()" data-i18n="lang">LANG</button>
+      <div id="langMenu" class="lang-menu">
+        <div onclick="selectLang('en')">English</div>
+        <div onclick="selectLang('hi')">हिंदी</div>
+      </div>
+    </li>
     </ul>
   </nav>
 </header>
@@ -23,15 +44,21 @@
   <section class="hero">
     <div class="hero-content">
       <!-- <div class="badge">AI-Powered Agriculture</div> -->
-      <h1>Protect Your Crops with <span>Intelligent Vision</span></h1>
-      <p>
+      <h1 data-i18n="hero_title">Protect Your Crops with <span>Intelligent Vision</span></h1>
+
+      <p data-i18n="hero_desc">
         Identify harmful pests in seconds using high-accuracy deep learning.
         Get instant chemical and organic solutions tailored for sustainable farming.
       </p>
 
       <div class="cta-group">
-        <a href="{{ url_for('detect') }}" class="btn-primary">🔍 Start Detection</a>
-        <a href="{{ url_for('about') }}" class="btn-secondary">Learn More</a>
+        <a href="{{ url_for('detect') }}" class="btn-primary" data-i18n="start_detection">
+          🔍 Start Detection
+        </a>
+
+        <a href="{{ url_for('about') }}" class="btn-secondary" data-i18n="learn_more">
+          Learn More
+        </a>
       </div>
     </div>
   </section>
@@ -39,25 +66,29 @@
   <section class="features-preview">
     <div class="feature-mini-card">
       <span class="icon">⚡</span>
-      <h4>Real-time</h4>
-      <p>Instant AI Analysis</p>
+      <h4 data-i18n="real_time">Real-time</h4>
+      <p data-i18n="instant_ai">Instant AI Analysis</p>
     </div>
     <div class="feature-mini-card">
       <span class="icon">🌿</span>
-      <h4>Eco-Friendly</h4>
-      <p>Organic Solutions</p>
+      <h4 data-i18n="eco_friendly">Eco-Friendly</h4>
+      <p data-i18n="organic_solution">Organic Solutions</p>
     </div>
     <div class="feature-mini-card">
       <span class="icon">📍</span>
-      <h4>Local</h4>
-      <p>Store Locator</p>
+      <h4 data-i18n="local">Local</h4>
+      <p data-i18n="store_locator">Store Locator</p>
     </div>
   </section>
 </main>
 
 <footer>
-  <p>© 2025 PestGuard | Smarter Farming, Safer Crops</p>
+  <p data-i18n="footer">
+    © 2025 PestGuard | Smarter Farming, Safer Crops
+  </p>
 </footer>
 
+<script src="{{ url_for('static', filename='js/translations.js') }}"></script> <!-- ✅ ADDED -->
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script> <!-- ✅ ADDED -->
 </body>
 </html>
