@@ -160,11 +160,21 @@
 <script src="{{ url_for('static', filename='js/lang.js') }}"></script>
 
 <script>
-// ✅ Apply stored language ONLY (no modal)
+
+
 window.onload = () => {
     const lang = localStorage.getItem("lang") || "en";
     applyLanguage(lang);
 };
+
+document.querySelectorAll(".pest-name").forEach(el => {
+    const pestKey = el.textContent.trim().toLowerCase();
+    const lang = localStorage.getItem("lang") || "en";
+
+    if (translations[lang][pestKey]) {
+        el.textContent = translations[lang][pestKey];
+    }
+});
 
 // 🔥 AI FETCH (unchanged logic, just text updated)
 function fetchMoreInfo(pestName, button) {
@@ -234,12 +244,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-window.addEventListener("pageshow", function (event) {
-    if (event.persisted) {
-        // ❌ Page loaded from cache → redirect
-        window.location.href = "/detect";
-    }
-});
+
+
 </script>
 
 </body>

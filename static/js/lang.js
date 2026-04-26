@@ -6,10 +6,8 @@ function selectLang(lang) {
 
     applyLanguage(lang);
 
-    // ✅ HIDE MODAL IMMEDIATELY
     if (modal) modal.style.display = "none";
 
-    // optional (menu)
     const menu = document.getElementById("langMenu");
     if (menu) menu.style.display = "none";
 }
@@ -23,7 +21,7 @@ function applyLanguage(lang) {
         }
     });
 
-    // 🔥 PLACEHOLDERS
+    // PLACEHOLDERS ✅ FIXED
     document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
         const key = el.getAttribute("data-i18n-placeholder");
         if (translations[lang] && translations[lang][key]) {
@@ -31,7 +29,7 @@ function applyLanguage(lang) {
         }
     });
 
-    // TITLE FIX
+    // TITLE
     const titleEl = document.querySelector("title[data-i18n]");
     if (titleEl) {
         const key = titleEl.getAttribute("data-i18n");
@@ -55,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     applyLanguage(lang);
-};
+});
 
 function toggleLangMenu() {
     const menu = document.getElementById("langMenu");

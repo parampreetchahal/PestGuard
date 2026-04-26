@@ -169,14 +169,14 @@ fileInput.addEventListener("change", () => {
 });
 
 // FORM SUBMIT
-form.addEventListener("submit", function(e) {
+form.addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const lang = localStorage.getItem("lang") || "en";
+
   if (fileInput.files.length === 0) {
-    e.preventDefault();
     alert(translations[lang]["upload_warning"]);
-    return false;
-
-    sessionStorage.setItem("result_valid", "true");
-
+    return;
   }
 
   loader.style.display = "block";
@@ -184,7 +184,36 @@ form.addEventListener("submit", function(e) {
   detectBtn.style.pointerEvents = "none";
 
   detectBtn.innerHTML = `<span class="btn-icon">⌛</span> ${translations[lang]["analyzing"]}`;
+
+  const formData = new FormData();
+
+  // append images
+  for (let file of fileInput.files) {
+    formData.append("images", file);
+  }
+
+  // append location
+  const location = document.getElementById("shoplocation").value;
+  formData.append("shoplocation", location);
+
+  // 🔥 append lang WITHOUT input field
+  formData.append("lang", lang);
+
+  try {
+    const response = await fetch("/detect", {
+      method: "POST",
+      body: formData
+    });
+
+    const redirectURL = response.url;
+
+    window.location.href = redirectURL;
+
+  } catch (err) {
+    alert("Error occurred");
+  }
 });
+
 </script>
 
 </body>

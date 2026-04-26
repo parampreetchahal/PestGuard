@@ -121,7 +121,23 @@ const translations = {
 
         nearby_shops: "Nearby Shops",
         found: "Found",
-        no_stores: "No stores found within 15km."
+        no_stores: "No stores found within 15km.",
+        result_page_title: "Results | PestGuard",
+
+        beetle: "Beetle",
+        mites: "Mites",
+        grasshopper: "Grasshopper",
+        sawfly: "Sawfly",
+        stem_borer: "Stem Borer",
+        mosquito: "Mosquito",
+        caterpillar: "Caterpillar",
+        weevil: "Weevil",
+        moth: "Moth",
+        armyworm: "Armyworm",
+        aphids: "Aphids",
+        bollworm: "Bollworm",
+        whitefly: "Whitefly",
+        earwig: "Earwig",
     },
 
     hi: {
@@ -249,7 +265,24 @@ const translations = {
 
         nearby_shops: "नज़दीकी दुकानें",
         found: "मिलीं",
-        no_stores: "15 किमी के भीतर कोई दुकान नहीं मिली"
+        no_stores: "15 किमी के भीतर कोई दुकान नहीं मिली",
+        result_page_title: "परिणाम | PestGuard",
+
+        // PEST NAMES (IMPORTANT)
+        beetle: "भृंग",
+        mites: "माइट्स",
+        grasshopper: "टिड्डा",
+        sawfly: "सॉफ़्लाई",
+        stem_borer: "तना छेदक",
+        mosquito: "मच्छर",
+        caterpillar: "इल्ली",
+        weevil: "घुन",
+        moth: "कीट पतंगा",
+        armyworm: "फौजी इल्ली",
+        aphids: "चेपा",
+        bollworm: "गुलाबी सुंडी",
+        whitefly: "सफेद मक्खी",
+        earwig: "कानखजूरा",
 
     }
 };

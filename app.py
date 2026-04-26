@@ -1,10 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_mail import Mail, Message
+from flask_limiter import Limiter
+from flask_compress import Compress
+from werkzeug.exceptions import HTTPException
 
+from uuid import uuid4
 from PIL import Image
 import numpy as np
 
 import json
+import logging
 
 from supabase import create_client
 import config
@@ -15,7 +20,6 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 from keras.models import load_model
 
-from uuid import uuid4
 from datetime import datetime
 from scipy.stats import entropy
 import re
@@ -28,6 +32,7 @@ import io
 import base64
 
 geo_lock = Lock()
+model_lock = Lock()
 
 LOW_CONF_BUCKET = "low_confidence_images"
 LOW_CONF_TABLE = "low_confidence_detections"
@@ -43,6 +48,10 @@ redis = Redis(
 )
 
 app = Flask(__name__)
+limiter = Limiter(app)
+Compress(app)
+
+logging.basicConfig(level=logging.INFO)
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
 
@@ -54,7 +63,7 @@ app.config['MAIL_PASSWORD'] = config.MAIL_PASSWORD
 
 mail = Mail(app)
 
-app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20MB limit
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB limit
 
 
 # Load trained model once
@@ -68,18 +77,32 @@ def warmup_model():
 
 warmup_model()
 
+RESULT_CACHE = {}
+
 # Load class indices from training
 with open("class_names.json", "r") as f:
     pest_classes = json.load(f)
 
 
+def safe_request(method, url, **kwargs):
+    if "timeout" in kwargs:
+        del kwargs["timeout"]
+
+    timeout = 10
+
+    for _ in range(3):
+        try:
+            return requests.request(method, url, timeout=timeout, **kwargs)
+        except requests.exceptions.RequestException as e:
+            logging.info(f"Retrying request...", {e})
+            time.sleep(0.5)
+
+    return None
+
+
 # DATABASE CONNECTIVE
-def get_pest_info(pest_name):
-    """
-    Fetch pest info from Supabase (PostgreSQL)
-    Table: pestguard
-    Columns: pest_name, effects, natural_solution, chemical_solution
-    """
+def get_pest_info(pest_name, lang="en"):
+
     default = {
         "effects": "Unknown",
         "natural_solution": "Unknown",
@@ -89,11 +112,15 @@ def get_pest_info(pest_name):
     if not pest_name:
         return default
 
-    cache_key = f"pest:{pest_name.lower()}"
+    pest_name = pest_name.strip().lower()
 
+    # ✅ Redis key WITH language
+    cache_key = f"pest:{pest_name}:{lang}"
+
+    # 🔥 REDIS READ
     cached = redis.get(cache_key)
     if cached:
-        print("⚡⚡ Redis Hit")
+        logging.info(f"⚡ Redis HIT: {cache_key}")
 
         if isinstance(cached, bytes):
             cached = cached.decode("utf-8")
@@ -101,39 +128,63 @@ def get_pest_info(pest_name):
         return json.loads(cached)
 
     try:
-        response = (
+        # ✅ SAFE FETCH (no ilike crash)
+        pest_res = supabase.table("pestguard").select("id,pest_name").execute()
+
+        pest = next(
+            (p for p in pest_res.data if pest_name in p["pest_name"].lower()),
+            None
+        )
+
+        if not pest:
+            return default
+
+        pest_id = pest["id"]
+
+        # ✅ GET TRANSLATION
+        trans_res = (
             supabase
-            .table("pestguard")
-            .select("pest_name,effects,natural_solution,chemical_solution")
-            .ilike("pest_name", pest_name)
+            .table("pestguard_translations")
+            .select("effects,natural_solution,chemical_solution")
+            .eq("pest_id", pest_id)
+            .eq("lang", lang)
             .limit(1)
             .execute()
         )
 
-        if response.data:
-            row = response.data[0]
-            pest_result = {
+        # 🔁 FALLBACK → EN
+        if not trans_res.data:
+            trans_res = (
+                supabase
+                .table("pestguard_translations")
+                .select("effects,natural_solution,chemical_solution")
+                .eq("pest_id", pest_id)
+                .eq("lang", "en")
+                .limit(1)
+                .execute()
+            )
+
+        if trans_res.data:
+            row = trans_res.data[0]
+
+            result = {
                 "effects": row.get("effects", "Unknown"),
                 "natural_solution": row.get("natural_solution", "Unknown"),
-                # 🔁 map chemical_solution → pesticide_solution (your app expects this key)
                 "pesticide_solution": row.get("chemical_solution", "Unknown")
             }
-            # store in redis
 
-            redis.set(cache_key,json.dumps(pest_result),ex=86400)
-            print("redis set")
-            return pest_result
+            # 🔥 REDIS WRITE
+            redis.set(cache_key, json.dumps(result), ex=86400)
+
+            logging.info(f"💾 Redis SET: {cache_key}")
+
+            return result
 
         return default
 
     except Exception as e:
-        print("❌ Supabase error in get_pest_info:", e)
-        return {
-            "effects": "Error",
-            "natural_solution": "N/A",
-            "pesticide_solution": "N/A"
-        }
-
+        logging.info(f"DB error: {e}")
+        return default
 
 def is_valid_city(city_name):
     if not city_name:
@@ -160,7 +211,8 @@ def is_valid_city(city_name):
 # Simple in-memory cache to avoid repeated API calls
 _COORDINATE_CACHE = {}
 _STORE_CACHE = {}
-_FAILED_CITY_CACHE = set()
+_FAILED_CITY_CACHE = {}  # city -> timestamp
+FAIL_TIMEOUT = 300  # 5 minutes retry window
 
 
 def get_coordinates(city_name):
@@ -170,7 +222,7 @@ def get_coordinates(city_name):
     2) Nominatim fallback (RATE LIMITED)
     """
     if not is_valid_city(city_name):
-        print(f"❌ Invalid city input: {city_name}")
+        logging.info(f"Invalid city input: {city_name}")
         return None, None
 
     key = city_name.strip().lower()
@@ -184,7 +236,7 @@ def get_coordinates(city_name):
         try:
             # query=f"{city_name}, India"
             photon_url = f"https://photon.komoot.io/api/?q={city_name}&limit=1"
-            r = requests.get(photon_url, timeout=10)
+            r = safe_request("GET",photon_url)
 
             if r.status_code == 200:
                 data = r.json()
@@ -193,7 +245,7 @@ def get_coordinates(city_name):
                     _COORDINATE_CACHE[key] = (lat, lon)
                     return lat, lon
         except Exception as e:
-            print("⚠️ Photon error:", e)
+            logging.info(f"Photon error:", {e})
 
         # Small delay before fallback (important)
         time.sleep(1.2)
@@ -218,14 +270,14 @@ def get_coordinates(city_name):
                 return lat, lon
 
         except (GeocoderTimedOut, GeocoderServiceError) as e:
-            print("⚠️ Nominatim error:", e)
+            logging.info(f"Nominatim error:", {e})
         except Exception as e:
-            print("⚠️ Unexpected geocoding error:", e)
+            logging.info(f"Unexpected geocoding error:", {e})
 
         # -------------------------------------------------
         # FAILED
         # -------------------------------------------------
-        print(f"❌ Could not determine coordinates for: {city_name}")
+        logging.info(f"Could not determine coordinates for: {city_name}")
         return None, None
 
 
@@ -239,26 +291,32 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
     # 1️⃣ SUCCESS CACHE (NON-EMPTY ONLY)
     # ===============================
     if key in _STORE_CACHE and _STORE_CACHE[key]:
-        print("✅ Using cached store results")
+        logging.info("Using cached store results")
         return _STORE_CACHE[key]
 
     # ===============================
     # 2️⃣ FAILURE / CIRCUIT BREAKER
     # ===============================
+    now = time.time()
+
     if key in _FAILED_CITY_CACHE:
-        print("⛔ Skipping APIs (previous failure)")
-        return [{
-            "name": "Search nearby pesticide shops",
-            "address": city_name,
-            "maps_url": f"https://www.google.com/maps/search/pesticide+shop+near+{city_name}"
-        }]
+        if now - _FAILED_CITY_CACHE[key] < FAIL_TIMEOUT:
+            logging.info("Skipping APIs (temporary failure cache)")
+            return [{
+                "name": "Search nearby pesticide shops",
+                "address": city_name,
+                "maps_url": f"https://www.google.com/maps/search/pesticide+shop+near+{city_name}"
+            }]
+        else:
+            del _FAILED_CITY_CACHE[key]  # retry after timeout
 
     # ===============================
-    # 3️⃣ GET COORDINATES
+    # GET COORDINATES
     # ===============================
     lat, lon = get_coordinates(city_name)
+    logging.info(f"📍 City: {city_name}, Lat: {lat}, Lon: {lon}")
     if not lat or not lon:
-        _FAILED_CITY_CACHE.add(key)
+        _FAILED_CITY_CACHE[key] = time.time()
         return [{
             "name": "Search nearby pesticide shops",
             "address": city_name,
@@ -268,7 +326,7 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
     stores = []
 
     # ===============================
-    # 4️⃣ OVERPASS API
+    # OVERPASS API
     # ===============================
     overpass_url = "https://overpass-api.de/api/interpreter"
     query = f"""
@@ -281,11 +339,14 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
         """
 
     try:
-        time.sleep(1.5)  # rate safety
-        resp = requests.post(overpass_url, data=query, timeout=20)
+        time.sleep(0.2)  # rate safety
+        headers = {
+            "User-Agent": "PestGuard/1.0 (student project)"
+        }
+        resp = safe_request("POST", overpass_url, data=query, headers=headers)
 
-        if resp.status_code != 200 or not resp.text.strip():
-            raise Exception("Overpass blocked or empty")
+        if not resp or resp.status_code != 200 or not resp.text.strip():
+            raise Exception("API failed")
 
         data = resp.json()
 
@@ -299,18 +360,18 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
 
         if stores:
             _STORE_CACHE[key] = stores
-            print("✅ Stores cached from Overpass")
+            logging.info("Stores cached from Overpass")
             return stores
 
     except Exception as e:
-        print("❌ Overpass error:", e)
+        logging.info(f"Overpass error: %s", {e})
 
     # ===============================
-    # 5️⃣ PHOTON FALLBACK
+    # PHOTON FALLBACK
     # ===============================
     try:
-        url = f"https://photon.komoot.io/api/?q=pesticide%20shop%20{city_name}&limit={max_results}"
-        resp = requests.get(url, timeout=10)
+        url = f"https://photon.komoot.io/api/?q=agriculture%20shop%20{city_name}%20India&limit={max_results}"
+        resp = safe_request("GET",url)
 
         if resp.status_code != 200 or not resp.text.strip():
             raise Exception("Photon empty")
@@ -328,17 +389,17 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
 
         if stores:
             _STORE_CACHE[key] = stores
-            print("✅ Stores cached from Photon")
+            logging.info("Stores cached from Photon")
             return stores
 
     except Exception as e:
-        print("❌ Photon fallback failed:", e)
+        logging.info(f"Photon fallback failed: %s", {e})
 
     # ===============================
-    # 6️⃣ MARK CITY FAILED (STOP RETRIES)
+    # MARK CITY FAILED (STOP RETRIES)
     # ===============================
-    _FAILED_CITY_CACHE.add(key)
-    print("⛔ Marking city as failed, using hard fallback")
+    _FAILED_CITY_CACHE[key] = time.time()
+    logging.info("Marking city as failed, using hard fallback")
 
     return [{
         "name": "Search nearby pesticide shops",
@@ -366,15 +427,15 @@ def store_low_confidence_image(image_bytes, confidence):
 
         for attempt in range(3):
             try:
-                res = supabase.storage.from_(LOW_CONF_BUCKET).upload(
+                supabase.storage.from_(LOW_CONF_BUCKET).upload(
                     storage_path,
                     image_bytes,
                     {"content-type": "image/jpeg"}
                 )
-                print("✅ Upload success:", storage_path)
+                logging.info(f"Upload success: {storage_path}")
                 break
             except Exception as e:
-                print("❌ Upload completely failed:", storage_path)
+                logging.info(f"Upload completely failed:", {storage_path})
                 return
 
         # INSERT INTO DB ONLY AFTER SUCCESS
@@ -386,18 +447,19 @@ def store_low_confidence_image(image_bytes, confidence):
 
         # CHECK DB RESPONSE
         if hasattr(db_res, "error") and db_res.error:
-            print("❌ DB insert failed:", db_res.error)
+            logging.info(f"DB insert failed:", {db_res.error})
         else:
-            print("📥 Stored in DB + Storage:", storage_path)
+            logging.info(f"📥 Stored in DB + Storage: {storage_path}")
 
     except Exception as e:
-        print("❌ Failed to store low-confidence image:", e)
+        logging.info(f"Failed to store low-confidence image:", {e})
 
 
-def predict_image_from_pil(pil_image, image_bytes, threshold=78):
+def predict_image_from_pil(pil_image, image_bytes, lang="en", threshold=78):
 
     img_array = preprocess_image_from_pil(pil_image)
-    prediction = model.predict(img_array, verbose=1)
+    with model_lock:
+        prediction = model.predict(img_array, verbose=1)
 
     probs = prediction[0]
 
@@ -413,7 +475,7 @@ def predict_image_from_pil(pil_image, image_bytes, threshold=78):
     MAX_ENTROPY = 1.5
     MIN_TOP2_GAP = 0.15
 
-    # 🟡 LOW CONFIDENCE → STORE IMAGE
+    #  LOW CONFIDENCE → STORE IMAGE
     if (
         confidence < max(threshold, MIN_CONFIDENCE)
         or uncertainty > MAX_ENTROPY
@@ -430,8 +492,8 @@ def predict_image_from_pil(pil_image, image_bytes, threshold=78):
             "stores": []
         }
 
-    # 🟢 CONFIDENT PREDICTION
-    pest_info = get_pest_info(detected_pest)
+    # CONFIDENT PREDICTION
+    pest_info = get_pest_info(detected_pest, lang)
 
     return {
         "pest": detected_pest,
@@ -445,50 +507,69 @@ def predict_image_from_pil(pil_image, image_bytes, threshold=78):
 # AI Info Fetch Function
 
 
-def getinfo(api_key, detected_pest):
+def getinfo(api_key, detected_pest, lang="en"):
+
+    language_map = {
+        "en": "English",
+        "hi": "Hindi"
+    }
+
+    selected_lang = language_map.get(lang, "English")
+
     url = "https://api.groq.com/openai/v1/chat/completions"
+
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
+
     messages = [
         {
             "role": "system",
             "content": (
-                "You are an expert agricultural entomologist. Provide technical data "
-                "structured with clear Markdown headers (###), bold keys, and bullet points. "
-                "Do not include introductory or concluding conversational filler."
+                f"You are an expert agricultural entomologist.\n"
+                f"Respond STRICTLY in {selected_lang}.\n"
+                "Do NOT mix languages.\n"
+                "Keep headings and content in the same language.\n"
+                "Use Markdown with headers (###), bold keys, bullet points."
             )
         },
         {
             "role": "user",
             "content": (
                 f"Create a technical dossier for the pest: {detected_pest}.\n\n"
-                "Use this exact structure:\n"
-                "### 🧬 Scientific Classification\n"
+
+                f"IMPORTANT:\n"
+                f"- Output MUST be completely in {selected_lang}\n"
+                f"- Do NOT use English if language is Hindi\n\n"
+
+                "Structure:\n"
+                "###  Scientific Classification\n"
                 "**Scientific Name**: [Name]\n"
                 "**Host Crops**: [List]\n\n"
-                "### 🔄 Life Cycle\n"
+                "###  Life Cycle\n"
                 "* **Egg Stage**: [Details]\n"
                 "* **Larval Stage**: [Details]\n"
                 "* **Pupal/Adult Stages**: [Details]\n\n"
-                "### ⚠️ Agricultural Impact\n"
+                "###  Agricultural Impact\n"
                 "* **Yield Loss**: [Details]\n"
                 "* **Physical Damage**: [Details]\n\n"
-                "### 🛡️ Management Strategies\n"
-                "* **Cultural Control**: [Actionable steps]\n"
-                "* **Biological Control**: [Predators/solutions]"
+                "###  Management Strategies\n"
+                "* **Cultural Control**: [Steps]\n"
+                "* **Biological Control**: [Solutions]"
             )
         }
     ]
+
     payload = {
         "model": "llama-3.1-8b-instant",
         "messages": messages,
-        "temperature": 0.2  # Lower temperature for more consistent formatting
+        "temperature": 0.2
     }
 
-    response = requests.post(url, headers=headers, json=payload)
+    response = safe_request("POST", url, headers=headers, json=payload)
     data = response.json()
+
     return data["choices"][0]["message"]["content"]
 
 # Flask Routes
@@ -500,13 +581,13 @@ def home():
 
 
 @app.route('/detect', methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def detect():
+    lang = request.form.get("lang", "en")
     if request.method == "POST":
-        city_name = request.form.get("shoplocation", "").strip()
-        if not city_name:
-            city_name = None
-
+        city_name = request.form.get("shoplocation", "").strip() or None
         files = request.files.getlist("images")
+
         results = []
 
         for file in files:
@@ -516,10 +597,10 @@ def detect():
             image_bytes = file.read()
             try:
                 pil_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-            except Exception:
-                continue  # skip invalid image
+            except:
+                continue
 
-            res = predict_image_from_pil(pil_image, image_bytes)
+            res = predict_image_from_pil(pil_image, image_bytes, lang=lang)
 
             encoded_img = base64.b64encode(image_bytes).decode("utf-8")
             res["image_data"] = encoded_img
@@ -530,15 +611,27 @@ def detect():
                 res["stores"] = []
 
             results.append(res)
-        session["result_valid"] = True
-        return render_template("result.html", results=results)
+
+        # store results in memory (not session)
+        result_id = str(uuid4())
+        RESULT_CACHE[result_id] = results
+
+        # redirect instead of render
+        return redirect(url_for("result", rid=result_id))
 
     return render_template("detect.html")
 
 
 @app.route('/result')
 def result():
-    return redirect(url_for("detect"))
+    rid = request.args.get("rid")
+
+    if not rid or rid not in RESULT_CACHE:
+        return redirect(url_for("detect"))
+
+    results = RESULT_CACHE.get(rid)  # remove after use
+
+    return render_template("result.html", results=results)
 
 
 @app.route('/more_info', methods=['POST'])
@@ -546,12 +639,13 @@ def more_info():
     api_key = config.GROQ_API_KEY
     data = request.get_json()
     detected_pest = data.get("pest")
+    lang = data.get("lang", "en")
 
     if not detected_pest or not api_key:
         return jsonify({"error": "Missing pest name or API key"}), 400
 
     try:
-        info = getinfo(api_key, detected_pest)
+        info = getinfo(api_key, detected_pest, lang)
         return jsonify({"info": info})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -566,7 +660,7 @@ def about():
 def contact():
     if request.method == 'POST':
         # ADD THIS LINE TO DEBUG:
-        print(f"DEBUG: Form received! Name: {request.form.get('name')}")
+        logging.info(f"DEBUG: Form received! Name: {request.form.get('name')}")
 
         user_name = request.form.get('name')
         user_email = request.form.get('email')
@@ -598,12 +692,38 @@ def contact():
 
             flash("Message sent! Check your inbox for a confirmation. ", "success")
         except Exception as e:
-            print(f"Mail Error: {e}")
+            logging.info(f"Mail Error: {e}")
             flash("System busy. Please try again later.", "error")
 
         return redirect(url_for('contact'))
 
     return render_template("contact.html")
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Pass through HTTP errors (like 404s) so Flask handles them normally
+    if isinstance(e, HTTPException):
+        return e
+
+    # Log the actual traceback for real server errors (500)
+    logging.exception("UNHANDLED EXCEPTION")
+    return jsonify({
+        "error": "Something went wrong. Please try again later."
+    }), 500
+
+
+@app.after_request
+def add_cache_headers(response):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
 
 # Run the Flask App
 
