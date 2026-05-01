@@ -729,4 +729,4 @@ def favicon():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False)
+    app.run(use_reloader=False)
