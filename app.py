@@ -114,10 +114,10 @@ def get_pest_info(pest_name, lang="en"):
 
     pest_name = pest_name.strip().lower()
 
-    # ✅ Redis key WITH language
+    #  Redis key WITH language
     cache_key = f"pest:{pest_name}:{lang}"
 
-    # 🔥 REDIS READ
+    #  REDIS READ
     cached = redis.get(cache_key)
     if cached:
         logging.info(f"⚡ Redis HIT: {cache_key}")
@@ -128,7 +128,7 @@ def get_pest_info(pest_name, lang="en"):
         return json.loads(cached)
 
     try:
-        # ✅ SAFE FETCH (no ilike crash)
+        # SAFE FETCH (no i like crash)
         pest_res = supabase.table("pestguard").select("id,pest_name").execute()
 
         pest = next(
@@ -141,7 +141,7 @@ def get_pest_info(pest_name, lang="en"):
 
         pest_id = pest["id"]
 
-        # ✅ GET TRANSLATION
+        # GET TRANSLATION
         trans_res = (
             supabase
             .table("pestguard_translations")
@@ -152,7 +152,7 @@ def get_pest_info(pest_name, lang="en"):
             .execute()
         )
 
-        # 🔁 FALLBACK → EN
+        # FALLBACK → EN
         if not trans_res.data:
             trans_res = (
                 supabase
@@ -173,10 +173,10 @@ def get_pest_info(pest_name, lang="en"):
                 "pesticide_solution": row.get("chemical_solution", "Unknown")
             }
 
-            # 🔥 REDIS WRITE
+            # REDIS WRITE
             redis.set(cache_key, json.dumps(result), ex=86400)
 
-            logging.info(f"💾 Redis SET: {cache_key}")
+            logging.info(f"Redis SET: {cache_key}")
 
             return result
 
@@ -314,7 +314,7 @@ def get_nearby_stores(city_name, radius=15000, max_results=5):
     # GET COORDINATES
     # ===============================
     lat, lon = get_coordinates(city_name)
-    logging.info(f"📍 City: {city_name}, Lat: {lat}, Lon: {lon}")
+    logging.info(f" City: {city_name}, Lat: {lat}, Lon: {lon}")
     if not lat or not lon:
         _FAILED_CITY_CACHE[key] = time.time()
         return [{
@@ -449,13 +449,13 @@ def store_low_confidence_image(image_bytes, confidence):
         if hasattr(db_res, "error") and db_res.error:
             logging.info(f"DB insert failed:", {db_res.error})
         else:
-            logging.info(f"📥 Stored in DB + Storage: {storage_path}")
+            logging.info(f"Stored in DB + Storage: {storage_path}")
 
     except Exception as e:
         logging.info(f"Failed to store low-confidence image:", {e})
 
 
-def predict_image_from_pil(pil_image, image_bytes, lang="en", threshold=78):
+def predict_image_from_pil(pil_image, image_bytes, lang="en", threshold=70):
 
     img_array = preprocess_image_from_pil(pil_image)
     with model_lock:
