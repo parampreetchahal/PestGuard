@@ -67,7 +67,7 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB limit
 
 
 # Load trained model once
-model = load_model("./Models/best_pestnet.keras")
+model = load_model("./best_pestnet.keras")
 
 
 def warmup_model():
@@ -729,4 +729,4 @@ def favicon():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False)
+    app.run(use_reloader=False)
