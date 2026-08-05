@@ -285,33 +285,6 @@ Create your configuration file (or use environment variables) with the required 
 python app.py
 ```
 
----
-
-# Screenshots
-
-Add screenshots here.
-
-```
-Home Page
-<img width="1013" height="494" alt="image" src="https://github.com/user-attachments/assets/e66f4446-1c8b-4c19-96c5-6227e386808e" />
-
-
-Prediction Page
-<img width="1013" height="459" alt="image" src="https://github.com/user-attachments/assets/a7ee4f6a-f284-4fd5-8fd3-2f84cd8cf35b" />
-<img width="1013" height="141" alt="image" src="https://github.com/user-attachments/assets/5beecc4b-f7ad-46c8-bf74-7e00cf473189" />
-
-
-Results Page
-<img width="810" height="695" alt="image" src="https://github.com/user-attachments/assets/1925fed1-69f8-4a47-bf71-14fe36654648" />
-
-
-Contact page
-<img width="1131" height="817" alt="image" src="https://github.com/user-attachments/assets/2b4d227d-95af-49bf-aa02-425c26ab6798" />
-
-```
-
----
-
 # Future Enhancements
 
 - Mobile Application
