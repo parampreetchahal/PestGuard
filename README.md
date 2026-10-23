@@ -36,6 +36,12 @@ PestGuard is a computer-vision web application built to help users identify crop
 
 Watch the shared live-demo recording: [Open PestGuard demo video](https://drive.google.com/file/d/1dP3HAEQdJGcgYdoDYb72JZjAOI4AnfqC/view?usp=drive_link). If Google Drive requests access, sign in with an account that has permission to view the file.
 
+### Application screenshots
+
+The screenshots below are taken from the PestGuard project report and show the actual application interface and a sample detection result.
+
+![PestGuard home page, pest detection screen, and detection results](docs/assets/screenshots/pestguard-overview.jpg)
+
 ## Why PestGuard?
 
 - **Image-based pest identification** using a trained classification model.
@@ -107,6 +113,8 @@ PestGuard/
 ├── YOLOv8_HybridPest_Pipeline_Kaggle.ipynb
 └── docs/
     └── assets/
+        ├── screenshots/
+        │   └── pestguard-overview.jpg
         ├── architecture.svg
         ├── hybridpestnet-f1.svg
         └── hybridpestnet-confusion-matrix.svg
