@@ -1,325 +1,176 @@
 <div align="center">
 
 # PestGuard
-### AI-Powered Pest Detection & Smart Agricultural Advisory System
 
-[![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)](https://python.org)
-[![TensorFlow](https://img.shields.io/badge/TensorFlow-Deep%20Learning-orange?logo=tensorflow)](https://tensorflow.org)
-[![YOLOv8](https://img.shields.io/badge/YOLOv8-Object%20Detection-purple)](https://ultralytics.com)
-[![Flask](https://img.shields.io/badge/Flask-Web%20Framework-black?logo=flask)](https://flask.palletsprojects.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue?logo=postgresql)](https://postgresql.org)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+### AI-powered pest detection and agricultural advisory
 
-An intelligent AI-powered platform that detects crop pests from images, provides multilingual recommendations, and helps farmers identify nearby pesticide suppliers using location-aware services.
+**Identify crop pests. Understand the result. Explore practical next steps.**
+
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Backend-Flask-black?logo=flask)](https://flask.palletsprojects.com/)
+[![TensorFlow](https://img.shields.io/badge/ML-TensorFlow-FF6F00?logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
+[![YOLOv8](https://img.shields.io/badge/Detection-YOLOv8-7B61FF)](https://docs.ultralytics.com/)
+[![Supabase](https://img.shields.io/badge/Storage-Supabase-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 
 </div>
 
 ---
 
-# Overview
+## At a glance
 
-PestGuard is an end-to-end Artificial Intelligence and Computer Vision based agricultural advisory platform designed to assist farmers in early pest identification and treatment.
+PestGuard is a computer-vision web application built to help users identify crop pests from images and access pest information, treatment and prevention guidance, and location-based supplier discovery. It combines deep-learning experiments with a Flask application and supporting cloud services.
 
-The system combines Deep Learning, Object Detection, Computer Vision, Natural Language Processing, and Geolocation Services to provide an intelligent decision support system capable of:
+| Reported result | Value |
+|---|---:|
+| HybridPestNet test accuracy | **92.10%** |
+| Standalone PestNet CNN test accuracy | **76.42%** |
+| YOLO-assisted pipeline accuracy | **88.17%** |
+| YOLO detector mAP@0.5 | **0.943** |
+| Classification dataset | **8,400 images · 12 classes** |
 
-- Detecting crop pests from uploaded images
-- Classifying pests using multiple AI models
-- Generating multilingual treatment recommendations
-- Providing pesticide information
-- Locating nearby pesticide suppliers
-- Delivering an easy-to-use web interface for farmers
+<sub>Metrics are reproduced from the project report, Chapter 5. Classification accuracy and YOLO localization metrics describe different evaluation tasks and are not directly interchangeable.</sub>
 
-The project was developed as a research-oriented academic project focusing on practical AI applications in precision agriculture.
+## Why PestGuard?
 
----
+- **Image-based pest identification** using a trained classification model.
+- **Multiple model approaches:** HybridPestNet, a standalone CNN (PestNet), and a YOLOv8-assisted detection pipeline.
+- **Pest guidance** covering pest details, treatment suggestions, and prevention information.
+- **Multilingual advisory experience** intended to make information more accessible.
+- **Location-aware discovery** for nearby pesticide suppliers.
+- **Web application** built with Flask, with supporting database, caching, email, and request-control services.
 
-# Key Features
+## Results and model evaluation
 
-## AI Pest Detection
+| Model / pipeline | Reported metric | Reported result |
+|---|---|---:|
+| HybridPestNet (EfficientNet + custom CNN head) | Test accuracy | **92.10%** |
+| Standalone PestNet CNN | Test accuracy | **76.42%** |
+| YOLO-assisted pipeline | Pipeline accuracy | **88.17%** |
+| YOLOv8 detector | mAP@0.5 | **0.943** |
 
-- HybridPestNet (EfficientNet-B3 + Custom CNN)
-- PestNet (CNN trained from scratch)
-- YOLOv8 Real-Time Pest Detection
-- Automatic image preprocessing
-- High accuracy classification
+### HybridPestNet per-class F1 score
 
----
+![HybridPestNet per-class F1 score chart](docs/assets/hybridpestnet-f1.svg)
 
-## Smart Recommendations
+### HybridPestNet confusion matrix
 
-- AI-generated pest information
-- Treatment recommendations
-- Prevention techniques
-- Crop protection suggestions
-- Multilingual responses
+![HybridPestNet confusion matrix transcribed from the project report](docs/assets/hybridpestnet-confusion-matrix.svg)
 
----
+The confusion matrix is transcribed from Figure 5.3 in the project report. It is included to make the reported evaluation easier to inspect; it is not a newly generated evaluation from model predictions.
 
-## Location Services
+## System architecture
 
-- Google Maps Integration
-- Nearby pesticide suppliers
-- Location-aware recommendations
-- Navigation support
+![PestGuard system architecture](docs/assets/architecture.svg)
 
----
+**High-level flow:** image upload → preprocessing → model inference → pest result → advisory and location-aware services → results presented to the user.
 
-## User Friendly Interface
+The application code also integrates Supabase and Upstash Redis. Advisory and geolocation features depend on the configuration and external services enabled for a deployment.
 
-- Modern responsive UI
-- Image upload support
-- Fast prediction results
-- Simple dashboard
-- Mobile-friendly design
+## Technology stack
 
----
+| Layer | Technologies |
+|---|---|
+| Application | Python, Flask, HTML, CSS, JavaScript |
+| Classification | TensorFlow / Keras, EfficientNet-based hybrid model, custom CNN |
+| Object detection | YOLOv8 / Ultralytics |
+| Image processing | Pillow, NumPy and preprocessing utilities |
+| Data and caching | Supabase, Upstash Redis |
+| Supporting services | Email, geocoding / location lookup, rate limiting and compression |
 
-# System Architecture
+## Pest classes
 
-```
-                User Uploads Image
-                        │
-                        ▼
-             Image Preprocessing
-                        │
-                        ▼
-      ┌─────────────────────────────────┐
-      │                                 │
-      │   HybridPestNet Classification  │
-      │                                 │
-      └─────────────────────────────────┘
-                        │
-                        ▼
-             Pest Identification
-                        │
-        ┌───────────────┼───────────────┐
-        ▼               ▼               ▼
- AI Recommendations   Pest Details   Treatment
-        │
-        ▼
- Google Maps API
-        │
-        ▼
- Nearby Pesticide Shops
-```
+The report evaluates these 12 classification labels:
 
----
+**Aphids · Beetle · Bollworm · Bugs · Caterpillar · Earwig · Grasshopper · Mites · Slug · Snail · Weevil · Whitefly**
 
-# Technology Stack
+## Repository layout
 
-## Programming Languages
-
-- Python
-- HTML
-- CSS
-- JavaScript
-
-## Machine Learning
-
-- TensorFlow
-- Keras
-- YOLOv8
-- EfficientNet-B3
-- OpenCV
-- NumPy
-- Pandas
-
-## Backend
-
-- Flask
-- REST APIs
-
-## Database
-
-- PostgreSQL
-
-## APIs
-
-- Google Maps API
-- AI Recommendation API
-
-## Development Tools
-
-- VS Code
-- Git
-- GitHub
-- Jupyter Notebook
-
----
-
-# Deep Learning Models
-
-## 1. HybridPestNet
-
-A hybrid architecture combining EfficientNet-B3 feature extraction with a custom CNN classifier for improved pest recognition.
-
-### Advantages
-
-- Higher accuracy
-- Better feature extraction
-- Faster convergence
-- Robust predictions
-
----
-
-## 2. PestNet
-
-A lightweight CNN model trained from scratch specifically for pest image classification.
-
-### Advantages
-
-- Lightweight
-- Faster inference
-- Low computational cost
-
----
-
-## 3. YOLOv8
-
-Real-time object detection model used for detecting pest regions within images.
-
-### Advantages
-
-- Real-time inference
-- Multiple object detection
-- High precision
-- Bounding box localization
-
----
-
-# Dataset
-
-- Approximately **8,400+ images**
-- **12 Pest Classes**
-- Data Augmentation
-- Image Normalization
-- Training, Validation, and Testing Split
-
----
-
-# Performance
-
-| Model | Performance |
-|--------|------------|
-| HybridPestNet | **92.10% Test Accuracy** |
-| YOLOv8 | **mAP@0.5 = 0.943** |
-
----
-
-# Project Structure
-
-```
+```text
 PestGuard/
-
-│
 ├── app.py
+├── config.py                 # local configuration; do not commit secrets
+├── best_pestnet.keras        # trained model expected by the app
+├── class_names.json
 ├── requirements.txt
-├── config.py
-├── runtime.txt
-├── Procfile
-│
-├── static/
-│
 ├── templates/
-│
+├── static/
 ├── hybrid-approach.ipynb
 ├── custom-cnn-from-scratch.ipynb
 ├── YOLOv8_HybridPest_Pipeline_Kaggle.ipynb
-│
-└── README.md
+└── docs/
+    └── assets/
+        ├── architecture.svg
+        ├── hybridpestnet-f1.svg
+        └── hybridpestnet-confusion-matrix.svg
 ```
 
----
+## Run locally
 
-# Installation
-
-## Clone Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/parampreetchahal/PestGuard.git
-
 cd PestGuard
 ```
 
----
+### 2. Create and activate a virtual environment
 
-## Create Virtual Environment
+**Windows (PowerShell)**
 
-```bash
-python -m venv venv
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
 ```
 
-Windows
+**macOS / Linux**
 
 ```bash
-venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-Linux / macOS
+### 3. Install dependencies
 
 ```bash
-source venv/bin/activate
-```
-
----
-
-## Install Dependencies
-
-```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
----
+> **Dependency note:** the current `requirements.txt` appears to include machine-specific package entries. If installation fails on another machine, create a clean, portable requirements file from the working environment rather than assuming the existing export is portable.
 
-## Configure Environment
+### 4. Configure credentials
 
-Create your configuration file (or use environment variables) with the required API keys and database credentials.
+Set up the configuration expected by `app.py` in a local `config.py` or adapt the application to read environment variables. The application references Supabase credentials, Upstash Redis credentials, a Flask secret key, and mail configuration.
 
-> **Note:** Sensitive credentials are intentionally excluded from this repository.
+**Never commit API keys, passwords, tokens, or production credentials.** Keep local configuration private and provide a redacted example configuration for collaborators.
 
----
-
-## Run Application
+### 5. Start Flask
 
 ```bash
 python app.py
 ```
 
-# Future Enhancements
+The application loads `best_pestnet.keras` and `class_names.json` at startup. Ensure both files are present at the expected paths. Some features may also require correctly configured external services.
 
-- Mobile Application
-- Voice-based Assistant
-- Disease Detection
-- Weather Integration
-- Fertilizer Recommendation
-- IoT Sensor Support
-- Drone-based Monitoring
-- Cloud Deployment
+## Reproducibility and interpretation
 
----
+- The classification dataset is reported as 8,400 images across 12 classes, split into training, validation, and test sets in an 80:10:10 ratio.
+- HybridPestNet uses 300 × 300 input images in the report; the standalone CNN uses 224 × 224.
+- The YOLO detection dataset is reported separately as 4,300 manually annotated images.
+- These are project-report results, not a guarantee of performance on new crops, camera conditions, or geographic regions.
+- Pest identification and treatment suggestions should be treated as decision support, not a substitute for qualified agricultural advice or pesticide-label instructions.
 
-# Research Contribution
+## Project status
 
-This project demonstrates the practical application of Artificial Intelligence, Deep Learning, Computer Vision, and Agricultural Technology to improve early pest detection and assist farmers in making informed crop protection decisions.
+PestGuard is an academic/research prototype. Deployment readiness depends on environment configuration, portable dependency management, model availability, and the external services used by the application.
 
----
+## Contributors
 
-# Author
+Developed as a team project at **Graphic Era Hill University, Dehradun**.
 
-### Parampreet Singh
+- **Parampreet Singh** — [GitHub](https://github.com/parampreetchahal) · [LinkedIn](https://www.linkedin.com/in/parampreet-singh23/)
+- Project teammates and mentor are acknowledged in the academic project report.
 
-B.Tech Computer Science Engineering
+## License
 
-Graphic Era Hill University, Dehradun
-
-GitHub:
-https://github.com/parampreetchahal
-
-LinkedIn:
-https://www.linkedin.com/in/parampreet-singh23/
-
----
-
-# License
-
-This project is intended for educational, research, and demonstration purposes.
+No explicit license file was verified during this documentation pass. Add a repository license before describing the project as open source or specifying reuse permissions.
