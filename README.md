@@ -6,6 +6,8 @@
 
 **Identify crop pests. Understand the result. Explore practical next steps.**
 
+[▶ Watch the live project demo](https://drive.google.com/file/d/1dP3HAEQdJGcgYdoDYb72JZjAOI4AnfqC/view?usp=drive_link) · [Browse the source code](https://github.com/parampreetchahal/PestGuard)
+
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Backend-Flask-black?logo=flask)](https://flask.palletsprojects.com/)
 [![TensorFlow](https://img.shields.io/badge/ML-TensorFlow-FF6F00?logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
@@ -29,6 +31,10 @@ PestGuard is a computer-vision web application built to help users identify crop
 | Classification dataset | **8,400 images · 12 classes** |
 
 <sub>Metrics are reproduced from the project report, Chapter 5. Classification accuracy and YOLO localization metrics describe different evaluation tasks and are not directly interchangeable.</sub>
+
+## Live demo
+
+Watch the shared live-demo recording: [Open PestGuard demo video](https://drive.google.com/file/d/1dP3HAEQdJGcgYdoDYb72JZjAOI4AnfqC/view?usp=drive_link). If Google Drive requests access, sign in with an account that has permission to view the file.
 
 ## Why PestGuard?
 
