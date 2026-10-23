@@ -1,0 +1,18 @@
+# Minimal runtime dependencies for the Flask web application.
+# Recommended runtime: Python 3.11 or 3.12.
+# This is intentionally separate from requirements.txt, which was exported
+# from a larger local environment and includes machine-specific paths.
+
+Flask
+Flask-Compress
+Flask-Limiter
+Flask-Mail
+geopy==2.4.1
+numpy==1.26.4
+Pillow
+requests
+scipy==1.13.1
+supabase==2.27.0
+tensorflow==2.19.0
+upstash-redis==1.6.0
+gunicorn==25.3.0

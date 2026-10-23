@@ -88,10 +88,12 @@ The report evaluates these 12 classification labels:
 ```text
 PestGuard/
 ├── app.py
-├── config.py                 # local configuration; do not commit secrets
+├── config.py                 # local-only credentials; never commit
+├── config.example.py         # redacted configuration template
 ├── best_pestnet.keras        # trained model expected by the app
 ├── class_names.json
-├── requirements.txt
+├── requirements.txt          # original environment export
+├── requirements-app.txt      # app runtime dependency set
 ├── templates/
 ├── static/
 ├── hybrid-approach.ipynb
@@ -133,16 +135,29 @@ source .venv/bin/activate
 
 ```bash
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r requirements-app.txt
 ```
 
-> **Dependency note:** the current `requirements.txt` appears to include machine-specific package entries. If installation fails on another machine, create a clean, portable requirements file from the working environment rather than assuming the existing export is portable.
+> **Why `requirements-app.txt`?** The original `requirements.txt` was exported from a larger local environment and contains machine-specific package paths. `requirements-app.txt` lists the runtime dependencies used by the Flask app. It is a starting point for a clean install, not a lockfile; verify the environment before deployment.
 
 ### 4. Configure credentials
 
-Set up the configuration expected by `app.py` in a local `config.py` or adapt the application to read environment variables. The application references Supabase credentials, Upstash Redis credentials, a Flask secret key, and mail configuration.
+Copy the redacted template to a local configuration file and replace each placeholder with your own service credentials:
 
-**Never commit API keys, passwords, tokens, or production credentials.** Keep local configuration private and provide a redacted example configuration for collaborators.
+```bash
+# macOS / Linux
+cp config.example.py config.py
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item config.example.py config.py
+```
+
+The app references Supabase, Upstash Redis, Flask session, email, and Groq API settings. Configure only the services you intend to use. The local `config.py` is ignored by Git.
+
+**Never commit API keys, passwords, tokens, or production credentials.**
 
 ### 5. Start Flask
 
